@@ -12,10 +12,10 @@ def savedata(timeout: int = 10, identifier: str = 'eng110data')->pd.DataFrame:
     for i in range(timeout):
         values = get_eng110_data()
         watts.append(values[2])
-        seconds.append(i)
+        seconds.append(time.localtime())
         time.sleep(1)
         print(f'Watts value is {values[2]}')
-        print(f'Time is now {i}')
+        print(f'Time is now {time.localtime()}')
 
     data = pd.DataFrame({
         'Watts': watts,

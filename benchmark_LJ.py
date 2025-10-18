@@ -23,6 +23,7 @@ from numba import cuda, config
 
 import gamdpy as gp
 import pickle
+import time
 
 
 def setup_lennard_jones_system(nx, ny, nz, rho=0.8442, cut=2.5, verbose=False):
@@ -117,7 +118,7 @@ def main(integrator, nblist, identifier, autotune):
     tpss_at = []
     compute_plans = []
     compute_plans_at = []
-    target_time_in_sec = 10.0 #At least this time to get reliable timing
+    target_time_in_sec = 5.0 #At least this time to get reliable timing
     magic_number = 1e7
     print('    N     TPS     Steps   Time     NbUpd Steps/NbUpd')
     for nxyz in nxyzs:
@@ -136,6 +137,8 @@ def main(integrator, nblist, identifier, autotune):
             tps_at, time_in_sec_at, steps_at, compute_plan_at = run_benchmark(c1, LJ_func, compute_plan, steps, integrator=integrator, autotune=autotune, verbose=False)
             tpss_at.append(tps_at)
             compute_plans_at.append(compute_plan_at)
+        print('Waiting 15 seconds')
+        time.sleep(15)
 
     # Save this run to csv file
     if autotune:

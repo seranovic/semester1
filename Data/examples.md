@@ -2,7 +2,7 @@
 
 Example of the total power graph:
 
-![Graph Example](total_power_figure.png)
+![Graph Example](Total_power_figure.png)
 
 One can clearly see an increase with system size.
 

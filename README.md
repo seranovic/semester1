@@ -31,14 +31,17 @@ jupyter-gpu -w bead67
 ## Collecting Data
 Once ssh into bead67 has been established run the following commands on separate terminals.
 
-```nvidia-smi dmon -f <filename> --format csv -o T -d 1 
+```
+nvidia-smi dmon -f <filename> --format csv -o T -d 1 
 ```
 
-```python3 powertocsv.py <loops> <filename>
+```
+python3 powertocsv.py <loops> <filename>
 ```
 Loops sweetspot is around 500, will update with further testing later.
 
-```python3 benchmark_LJ.py
+```
+python3 benchmark_LJ.py
 ```
 
 

@@ -1,7 +1,7 @@
 import pandas as pd
 import sys
 
-def data_processing(filename: str) -> pd.DataFrame:
+def cleaner(filename: str) -> pd.DataFrame:
 
     data = pd.read_csv(f'{filename}')
 

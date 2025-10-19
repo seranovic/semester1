@@ -40,14 +40,13 @@ and following the printed instructions.
 Once ssh into bead67 has been established run the following commands on separate terminals.
 
 ```
-nvidia-smi dmon -f <filename> --format csv -o T -d 1 
+nvidia-smi dmon -f <filename> --format csv -o T -id 0 
 ```
 
 ```
 python3 powertocsv.py <loops> <filename>
 ```
-Loops sweetspot is around 500, will update with further testing later.
-
+Loops sweetspot is around 330.
 ```
 python3 benchmark_LJ.py
 ```

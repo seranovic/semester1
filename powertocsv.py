@@ -24,7 +24,7 @@ def savedata(timeout: int = 10, identifier: str = 'totalpower')->pd.DataFrame:
         watts.append(values[2])
         clock = time.localtime() #get local time
 
-        seconds.append(f'{clock[3]}:{str(clock[4]).zfill(2)}:{str(clock[5]).zfill(2)}') #saves local time in HH:MM:SS format
+        seconds.append(f'{str(clock[3]).zfill(2)}:{str(clock[4]).zfill(2)}:{str(clock[5]).zfill(2)}') #saves local time in HH:MM:SS format
         print(f'Time is now {clock[3]}:{str(clock[4]).zfill(2)}:{str(clock[5]).zfill(2)}')
         print(f'Watts value is {values[2]}. {i}/{timeout}')
 

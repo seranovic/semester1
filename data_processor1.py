@@ -42,7 +42,7 @@ def tcleaner(series: pd.Series)->pd.Series:
         temp = time.strptime(t[i], '%d %b %Y %H:%M:%S')
         clean_time.append(time.mktime(temp))
 
-    output = pd.Series(clean_time, name='Time (s)')
+    output = pd.Series(clean_time)
 
     return output
 

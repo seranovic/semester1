@@ -46,7 +46,7 @@ nvidia-smi dmon -f <filename> --format csv -o T -id 0
 ```
 python3 powertocsv.py <loops> <filename>
 ```
-Loops sweetspot is around 330.
+Loops sweetspot is around 400
 ```
 python3 benchmark_LJ.py
 ```

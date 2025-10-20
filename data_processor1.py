@@ -1,3 +1,5 @@
+import time
+
 import pandas as pd
 import sys
 
@@ -15,10 +17,11 @@ def cleaner(filename: str) -> pd.DataFrame:
     data = pd.read_csv(f'{filename}')
 
     clean_data = pd.to_numeric(data[' pwr'], errors = 'coerce')
-    clean_time = data['#Time'].astype(str)
+    str_time = data['#Time'].astype(str)
 
     final_data = pd.DataFrame({
-        'Time': clean_time,
+        'Time': str_time,
+
         'Power': clean_data
     })
 
@@ -27,6 +30,21 @@ def cleaner(filename: str) -> pd.DataFrame:
     final_data.to_csv(f'{filename}_clean.csv', index=False)
 
     return final_data
+
+
+def tcleaner(input: pd.Series)->pd.Series:
+
+    t = ('10 Oct 2025 '+input).tolist()
+
+    clean_time = []
+
+    for i in range(len(input)):
+        temp = time.strptime(t[i], '%d %b %Y %H:%M:%S')
+        clean_time.append(time.mktime(temp))
+
+    output = pd.Series(clean_time, name='Time (s)')
+
+    return output
 
 if __name__ == '__main__':
     filename = sys.argv[1]

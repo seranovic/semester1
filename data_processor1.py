@@ -2,6 +2,15 @@ import pandas as pd
 import sys
 
 def cleaner(filename: str) -> pd.DataFrame:
+    """
+    Takes nvidia-smi csv file, removes non-numeric power values, drops NaN values and
+    overwrites and returns a dataframe containing the cleaned data.
+
+    Args:
+        filename: filepath pointing to nvidia-smi csv file.
+    Returns:
+
+    """
 
     data = pd.read_csv(f'{filename}')
 

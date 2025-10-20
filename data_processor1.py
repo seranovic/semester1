@@ -32,13 +32,13 @@ def cleaner(filename: str) -> pd.DataFrame:
     return final_data
 
 
-def tcleaner(input: pd.Series)->pd.Series:
+def tcleaner(series: pd.Series)->pd.Series:
 
-    t = ('10 Oct 2025 '+input).tolist()
+    t = ('10 Oct 2025 ' + series).tolist()
 
     clean_time = []
 
-    for i in range(len(input)):
+    for i in range(len(series)):
         temp = time.strptime(t[i], '%d %b %Y %H:%M:%S')
         clean_time.append(time.mktime(temp))
 
@@ -47,7 +47,6 @@ def tcleaner(input: pd.Series)->pd.Series:
     return output
 
 if __name__ == '__main__':
-    filename = sys.argv[1]
-    data_processing(filename)
+    print('Error')
 
 

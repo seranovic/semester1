@@ -6,7 +6,8 @@ Connect to vpn.ruc.dk, then ssh into one of the following targets:
 
 - dirac: ```ssh <username>@dirac.ruc.dk```
 - bead50: ```ssh -J <username>@dirac.ruc.dk <username>@bead50```
-- bead67: ```ssh -J <username>@dirac.ruc.dk,<username>@bead50 -L 50000:localhost:50000 <username>@bead67```
+- bead67, with access to jupyter environment:\
+  ```ssh -J <username>@dirac.ruc.dk,<username>@bead50 -L 50000:localhost:50000 <username>@bead67```
 
 Alternatively, add this snippet to your ssh config:
 ```sshconfig
@@ -35,6 +36,17 @@ source "/net/debye/jklust/slurm/jupyter as a job/jupyter_slurm_job.sh"
 jupyter-gpu -w bead67
 ```
 and following the printed instructions.
+
+## Send/Retrieve Data
+
+You have to clone this repository via dirac, as bead50 and bead67 don't have internet access.
+
+Use rsync from your local machine to copy files to/from the server:
+```
+rsync <source-path> <destination-path>
+```
+where a remote path follows the syntax: ```<username>@dirac.ruc.dk:/absolute/path```, or if you've set up your ssh config: ```dirac:/absolute/path```.
+
 
 ## Collecting Data
 Once ssh into bead67 has been established run the following commands on separate terminals.

@@ -40,7 +40,7 @@ and following the printed instructions.
 Once ssh into bead67 has been established run the following commands on separate terminals.
 
 ```
-nvidia-smi dmon -f <filename> --format csv -o T -id 0 
+nvidia-smi dmon -f <filename> --format csv -o T -i 0 
 ```
 
 ```

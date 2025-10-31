@@ -33,6 +33,11 @@ def cleaner(filename: str) -> pd.DataFrame:
 
 
 def tcleaner(series: pd.Series)->pd.Series:
+    """Takes a HH:MM:SS string series and returns a linux epoch float representing that hour on the 10th of Oct 2025
+
+    Args: string series with a time on HH:MM:SS format
+
+    Returns: series with linux epoch float"""
 
     t = ('10 Oct 2025 ' + series).tolist()
 

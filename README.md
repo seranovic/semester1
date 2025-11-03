@@ -5,6 +5,7 @@
 Connect to vpn.ruc.dk, then ssh into one of the following targets:
 
 - dirac: ```ssh <username>@dirac.ruc.dk```
+- i42: ```ssh -J <username>@dirac.ruc.dk <username>@i42```
 - bead50: ```ssh -J <username>@dirac.ruc.dk <username>@bead50```
 - bead67, with access to jupyter environment:\
   ```ssh -J <username>@dirac.ruc.dk,<username>@bead50 -L 50000:localhost:50000 <username>@bead67```
@@ -14,6 +15,11 @@ Alternatively, add this snippet to your ssh config:
 Host dirac
     HostName dirac.ruc.dk
     User <username>
+
+Host i42
+    HostName i42
+    User <username>
+    ProxyJump dirac
 
 Host bead50
     HostName bead50
@@ -26,7 +32,7 @@ Host bead67
     ProxyJump bead50
     LocalForward 50000 localhost:50000 # Port forwarding for accessing jupyter environment
 ```
-and run ```ssh <dirac-OR-bead50-OR-bead67>```.
+and run ```ssh <dirac|i42|bead50|bead67>```.
 
 ## Jupyter
 
@@ -39,7 +45,7 @@ and following the printed instructions.
 
 ## Send/Retrieve Data
 
-You have to clone this repository via dirac, as bead50 and bead67 don't have internet access.
+You have to clone this repository via i42.
 
 Use rsync from your local machine to copy files to/from the server:
 ```

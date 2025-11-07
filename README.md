@@ -4,11 +4,10 @@
 
 Connect to vpn.ruc.dk, then ssh into one of the following targets:
 
-- dirac: ```ssh <username>@dirac.ruc.dk```
-- i42: ```ssh -J <username>@dirac.ruc.dk <username>@i42```
-- bead50: ```ssh -J <username>@dirac.ruc.dk <username>@bead50```
-- bead67, with access to jupyter environment:\
-  ```ssh -J <username>@dirac.ruc.dk,<username>@bead50 -L 50000:localhost:50000 <username>@bead67```
+- dirac - main entry point: ```ssh <username>@dirac.ruc.dk```
+- i42 & i43 - internet access for file sync: ```ssh -J <username>@dirac.ruc.dk <username>@<i42/i43>```
+- bead50 - RTX 2080 Ti: ```ssh -J <username>@dirac.ruc.dk <username>@bead50```
+- bead67 - RTX 4090: ```ssh -J <username>@dirac.ruc.dk <username>@bead67```
 
 Alternatively, add this snippet to your ssh config:
 ```sshconfig
@@ -16,23 +15,11 @@ Host dirac
     HostName dirac.ruc.dk
     User <username>
 
-Host i42
-    HostName i42
+Host i42 i43 bead50 bead67
     User <username>
     ProxyJump dirac
-
-Host bead50
-    HostName bead50
-    User <username>
-    ProxyJump dirac
-
-Host bead67
-    HostName bead67
-    User <username>
-    ProxyJump bead50
-    LocalForward 50000 localhost:50000 # Port forwarding for accessing jupyter environment
 ```
-and run ```ssh <dirac|i42|bead50|bead67>```.
+and run ```ssh <target-hostname>```.
 
 ## Jupyter
 
@@ -45,7 +32,7 @@ and following the printed instructions.
 
 ## Send/Retrieve Data
 
-You have to clone this repository via i42.
+You have to clone this repository and transfer data via i42/i43.
 
 Use rsync from your local machine to copy files to/from the server:
 ```

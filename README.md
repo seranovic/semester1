@@ -4,10 +4,14 @@
 
 Connect to vpn.ruc.dk, then ssh into one of the following targets:
 
-- dirac - main entry point: ```ssh <username>@dirac.ruc.dk```
-- i42 & i43 - internet access for file sync: ```ssh -J <username>@dirac.ruc.dk <username>@<i42/i43>```
-- bead50 - RTX 2080 Ti: ```ssh -J <username>@dirac.ruc.dk <username>@bead50```
-- bead67 - RTX 4090: ```ssh -J <username>@dirac.ruc.dk <username>@bead67```
+- dirac - main entry point:\
+  ```ssh <username>@dirac.ruc.dk```
+- i42 & i43 - internet access for file sync:\
+  ```ssh -J <username>@dirac.ruc.dk <username>@<i42/i43>```
+- bead50 - RTX 2080 Ti:\
+  ```ssh -J <username>@dirac.ruc.dk <username>@bead50```
+- bead67 - RTX 4090:\
+  ```ssh -J <username>@dirac.ruc.dk <username>@bead67```
 
 Alternatively, add this snippet to your ssh config:
 ```sshconfig

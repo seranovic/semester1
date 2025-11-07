@@ -46,18 +46,19 @@ where a remote path follows the syntax: ```<username>@dirac.ruc.dk:/absolute/pat
 
 
 ## Collecting Data
-Once ssh into bead67 has been established run the following commands on separate terminals.
 
+While on bead67, run the following script to start the benchmark and save the measurements to csv:
+```sh
+python3 main.py
 ```
-nvidia-smi dmon -f <filename> --format csv -o T -i 0 
-```
+The default parameters will run for 435 seconds and save the csv-files with the prefix "default".
 
+You can use the following arguments:
 ```
-python3 powertocsv.py <loops> <filename>
-```
-Loops sweetspot is around 400
-```
-python3 benchmark_LJ.py
-```
+usage: main.py [-h] [-i [name]] [-s [n]]
 
-
+options:
+  -h, --help         show this help message and exit
+  -i, --id [name]    unique identifier for this run
+  -s, --samples [n]  amount of samples to run (1 sample/sec)
+```

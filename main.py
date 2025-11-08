@@ -2,52 +2,61 @@ import argparse
 import asyncio
 import multiprocessing
 import subprocess
-import sys
 import time
 
 from ENG110_python import get_eng110_data
 
 
-async def measure_total(samples: int) -> str:
+async def measure_total(stop_event: asyncio.Event) -> str:
     """
-    Returns measurements from ENG110 power meter as a csv-formatted string. Includes
-    power readings (W) and timestamp sampled once per second.
+    Returns power draw measurements from ENG110 power meter as a csv-formatted string.
 
-    Format: time (HH:MM:SS), power draw (W)
+    Format: time (s), power draw (W)
     """
 
-    csv = ""
+    csv = "time,power\n"
+    i = 1
 
-    for _ in range(samples):
+    while not stop_event.is_set():
         p = get_eng110_data()
         t = time.localtime()
 
-        csv += "{}:{}:{},{:.2f}\n".format(
-            str(t.tm_hour).zfill(2),
-            str(t.tm_min).zfill(2),
-            str(t.tm_sec).zfill(2),
-            p[2],
-        )
+        csv += "{},{:.2f}\n".format(i, p[2])
 
-        while t.tm_sec == time.localtime().tm_sec:  # while time is same waits 0.1 secs
+        # Pause sampling until next second
+        while t.tm_sec == time.localtime().tm_sec and not stop_event.is_set():
             await asyncio.sleep(0.1)
+
+        i += 1
 
     return csv
 
 
-async def measure_gpu(samples: int) -> str:
+async def measure_gpu(stop_event: asyncio.Event) -> str:
     """
-    Runs nvidia-smi and returns measurements as csv-formatted string.
+    Returns power draw measurements from nvidia-smi as a csv-formatted string.
 
-    Format: time (HH:MM:SS), gpu id, power draw (W), gtemp (C), mtemp (C)
+    Format: time (s), power draw (W)
     """
 
-    proc = await asyncio.create_subprocess_shell(
-        f"nvidia-smi dmon -i 0 -s p -o T --format=csv,nounit,noheader -c {samples}",
-        stdout=asyncio.subprocess.PIPE,
-    )
-    stdout, _ = await proc.communicate()
-    csv = stdout.decode().replace(" ", "")
+    csv = "time,power\n"
+    i = 1
+
+    while not stop_event.is_set():
+        proc = await asyncio.create_subprocess_shell(
+            f"nvidia-smi -i 0 --query-gpu=power.draw --format=csv,nounits,noheader",
+            stdout=asyncio.subprocess.PIPE,
+        )
+        stdout, _ = await proc.communicate()
+        t = time.localtime()
+
+        csv += "{},{}".format(i, stdout.decode())
+
+        # Pause sampling until next second
+        while t.tm_sec == time.localtime().tm_sec and not stop_event.is_set():
+            await asyncio.sleep(0.1)
+
+        i += 1
 
     return csv
 
@@ -59,39 +68,36 @@ def run_bench() -> None:
 
     time.sleep(15)  # for measuring pre-benchmark idle power draw
     proc = subprocess.run(
-        [
-            "python3",
-            "benchmark_LJ.py",
-            "default",
-        ],
-        capture_output=True,
+        ["python3", "benchmark_LJ.py", "default"], capture_output=True
     )
 
 
-async def main(samples: int, identifier: str) -> None:
+async def main(identifier: str) -> None:
     # Start benchmark as its own process
     proc_bench = multiprocessing.Process(target=run_bench)
     proc_bench.start()
 
-    # Start measurement tools
-    asyncio.create_task(measure_gpu(samples))
-    asyncio.create_task(measure_total(samples))
+    # Stop event for measuring tasks
+    stop_event = asyncio.Event()
 
-    # Wait for measurements to be done
-    proc_gpu, proc_total = await asyncio.gather(
-        measure_gpu(samples), measure_total(samples)
-    )
+    # Start measurement tasks
+    proc_gpu = asyncio.create_task(measure_gpu(stop_event))
+    proc_total = asyncio.create_task(measure_total(stop_event))
 
-    # Wait for benchmark to be done
+    # Stop measurement tasks when benchmark has concluded
     while proc_bench.is_alive():
         await asyncio.sleep(0.5)
-    proc_bench.join()
+    stop_event.set()
+
+    # Get measurement data
+    data_gpu = await proc_gpu
+    data_total = await proc_total
 
     # Save data to files
-    with open(f"csv/{identifier}-gpu.csv", "w") as f:
-        f.write("time,gpu,power,gtemp,mtemp\n" + proc_gpu)
-    with open(f"csv/{identifier}-total.csv", "w") as f:
-        f.write("time,power\n" + proc_total)
+    with open(f"data/{identifier}-gpu.csv", "w") as f:
+        f.write(data_gpu)
+    with open(f"data/{identifier}-total.csv", "w") as f:
+        f.write(data_total)
 
 
 if __name__ == "__main__":
@@ -101,23 +107,10 @@ if __name__ == "__main__":
         "--id",
         type=str,
         nargs="?",
+        metavar="string",
         default="default",
-        metavar="name",
-        help="unique identifier for this run",
-    )
-    p.add_argument(
-        "-s",
-        "--samples",
-        type=int,
-        nargs="?",
-        default=435,
-        metavar="n",
-        help="amount of samples to run (1 sample/sec)",
+        help="identifier for this run (will overwrite data if not unique)",
     )
     args = p.parse_args()
 
-    if args.samples <= 0:
-        p.print_help()
-        sys.exit(1)
-
-    asyncio.run(main(samples=args.samples, identifier=args.id))
+    asyncio.run(main(identifier=args.id))

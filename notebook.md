@@ -12,13 +12,8 @@ import seaborn.objects as so
 ```python
 identifier = "default"  # FIXME: set identifier of csv dataset
 
-gpu = pd.read_csv(f"csv/{identifier}-gpu.csv")
-gpu = pd.DataFrame({
-    "time": gpu["time"],
-    "power": gpu["power"],
-})
-
-total = pd.read_csv(f"csv/{identifier}-total.csv")
+gpu = pd.read_csv(f"data/{identifier}-gpu.csv")
+total = pd.read_csv(f"data/{identifier}-total.csv")
 
 combined = pd.merge(gpu, total, how="inner", on="time", suffixes=("_gpu", "_total"))
 ```
@@ -32,7 +27,7 @@ Displays two graphs stacked on top of each other. Easily readable.
 
 ```python
 (
-    so.Plot(data=combined, x=combined.index)
+    so.Plot(data=combined, x=combined.time)
     .add(so.Area(edgewidth=0), y="power_total")
     .add(so.Line(linewidth=1), y="power_total", label="Total")
     .add(so.Area(edgewidth=0, color="green"), y="power_gpu")
@@ -62,7 +57,7 @@ Displays two graphs side by side. Might have a purpose in the report later on.
 
 ```python
 (
-    so.Plot(data=combined, x=combined.index)
+    so.Plot(data=combined, x=combined.time)
     .pair(y=["power_gpu", "power_total"])
     .add(so.Area(edgewidth=0)).add(so.Line(linewidth=1))
     .label(
@@ -90,7 +85,7 @@ Displays the interval between two y-values. Looks kinda goofy at this point.
 
 ```python
 (
-    so.Plot(combined, x=combined.index, ymin="power_gpu", ymax="power_total")
+    so.Plot(combined, x=combined.time, ymin="power_gpu", ymax="power_total")
     .add(so.Band(edgewidth=1))
     .label(
         x="Time (sec)",

@@ -1,5 +1,6 @@
 import argparse
 import asyncio
+import io
 import multiprocessing
 import subprocess
 import time
@@ -7,21 +8,21 @@ import time
 from ENG110_python import get_eng110_data
 
 
-async def measure_total(stop_event: asyncio.Event) -> str:
+async def measure_total(stop_event: asyncio.Event, f: io.TextIOWrapper) -> None:
     """
-    Returns power draw measurements from ENG110 power meter as a csv-formatted string.
+    Get power draw measurements from ENG110 power meter and write to file in csv-format.
 
     Format: time (s), power draw (W)
     """
 
-    csv = "time,power\n"
+    f.write("time,power\n")
     i = 1
 
     while not stop_event.is_set():
         p = get_eng110_data()
         t = time.localtime()
 
-        csv += "{},{:.2f}\n".format(i, p[2])
+        f.write("{},{:.2f}\n".format(i, p[2]))
 
         # Pause sampling until next second
         while t.tm_sec == time.localtime().tm_sec and not stop_event.is_set():
@@ -29,17 +30,15 @@ async def measure_total(stop_event: asyncio.Event) -> str:
 
         i += 1
 
-    return csv
 
-
-async def measure_gpu(stop_event: asyncio.Event) -> str:
+async def measure_gpu(stop_event: asyncio.Event, f: io.TextIOWrapper) -> None:
     """
-    Returns power draw measurements from nvidia-smi as a csv-formatted string.
+    Get power draw measurements from nvidia-smi and write to file in csv-format.
 
     Format: time (s), power draw (W)
     """
 
-    csv = "time,power\n"
+    f.write("time,power\n")
     i = 1
 
     while not stop_event.is_set():
@@ -50,15 +49,13 @@ async def measure_gpu(stop_event: asyncio.Event) -> str:
         stdout, _ = await proc.communicate()
         t = time.localtime()
 
-        csv += "{},{}".format(i, stdout.decode())
+        f.write("{},{}".format(i, stdout.decode()))
 
         # Pause sampling until next second
         while t.tm_sec == time.localtime().tm_sec and not stop_event.is_set():
             await asyncio.sleep(0.1)
 
         i += 1
-
-    return csv
 
 
 def run_bench() -> None:
@@ -80,24 +77,23 @@ async def main(identifier: str) -> None:
     # Stop event for measuring tasks
     stop_event = asyncio.Event()
 
-    # Start measurement tasks
-    proc_gpu = asyncio.create_task(measure_gpu(stop_event))
-    proc_total = asyncio.create_task(measure_total(stop_event))
+    # Stream to files
+    with (
+        open(f"data/{identifier}-gpu.csv", "w", buffering=1) as f_gpu,
+        open(f"data/{identifier}-total.csv", "w", buffering=1) as f_total,
+    ):
 
-    # Stop measurement tasks when benchmark has concluded
-    while proc_bench.is_alive():
-        await asyncio.sleep(0.5)
-    stop_event.set()
+        # Start measurement tasks
+        proc_gpu = asyncio.create_task(measure_gpu(stop_event, f_gpu))
+        proc_total = asyncio.create_task(measure_total(stop_event, f_total))
 
-    # Get measurement data
-    data_gpu = await proc_gpu
-    data_total = await proc_total
+        # Stop measurement tasks when benchmark has concluded
+        while proc_bench.is_alive():
+            await asyncio.sleep(0.5)
+        stop_event.set()
 
-    # Save data to files
-    with open(f"data/{identifier}-gpu.csv", "w") as f:
-        f.write(data_gpu)
-    with open(f"data/{identifier}-total.csv", "w") as f:
-        f.write(data_total)
+        # Wait for measurement tasks
+        await asyncio.gather(proc_gpu, proc_total)
 
 
 if __name__ == "__main__":

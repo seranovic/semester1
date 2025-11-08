@@ -1,8 +1,5 @@
 jupyter
 notebook
-numpy
 pandas
-scipy
-matplotlib
 seaborn
 pyserial

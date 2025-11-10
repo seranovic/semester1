@@ -1,57 +1,59 @@
 import argparse
 import asyncio
-import io
+from io import TextIOWrapper
 import multiprocessing
 import subprocess
 import time
+from typing import Callable
 
 from ENG110_python import get_eng110_data
 
 
-async def measure_total(stop_event: asyncio.Event, f: io.TextIOWrapper) -> None:
+async def measure_total() -> str:
     """
-    Get power draw measurements from ENG110 power meter and write to file in csv-format.
-
-    Format: time (s), power draw (W)
+    Get power draw measurement from ENG110 power meter.
     """
 
-    f.write("time,power\n")
+    measurement = "{:.2f}".format(get_eng110_data()[2])
+
+    return measurement
+
+
+async def measure_gpu() -> str:
+    """
+    Get power draw measurement from nvidia-smi.
+    """
+
+    proc = await asyncio.create_subprocess_shell(
+        "nvidia-smi -i 0 --query-gpu=power.draw --format=csv,nounits,noheader",
+        stdout=asyncio.subprocess.PIPE,
+    )
+    stdout, _ = await proc.communicate()
+    measurement = stdout.decode().replace("\n", "")
+
+    return measurement
+
+
+async def write_to_file(
+    stop_event: asyncio.Event, out: TextIOWrapper, measure_func: Callable[None, str]
+) -> None:
+    """
+    Write power draw measurements to file in once per second.
+
+    Format: time,power
+        time:   timestamp in seconds
+        power:  power draw in watts
+    """
+
+    out.write("time,power\n")
     i = 1
 
     while not stop_event.is_set():
-        p = get_eng110_data()
-        t = time.localtime()
-
-        f.write("{},{:.2f}\n".format(i, p[2]))
+        measurement = await measure_func()
+        out.write(f"{i},{measurement}\n")
 
         # Pause sampling until next second
-        while t.tm_sec == time.localtime().tm_sec and not stop_event.is_set():
-            await asyncio.sleep(0.1)
-
-        i += 1
-
-
-async def measure_gpu(stop_event: asyncio.Event, f: io.TextIOWrapper) -> None:
-    """
-    Get power draw measurements from nvidia-smi and write to file in csv-format.
-
-    Format: time (s), power draw (W)
-    """
-
-    f.write("time,power\n")
-    i = 1
-
-    while not stop_event.is_set():
-        proc = await asyncio.create_subprocess_shell(
-            f"nvidia-smi -i 0 --query-gpu=power.draw --format=csv,nounits,noheader",
-            stdout=asyncio.subprocess.PIPE,
-        )
-        stdout, _ = await proc.communicate()
         t = time.localtime()
-
-        f.write("{},{}".format(i, stdout.decode()))
-
-        # Pause sampling until next second
         while t.tm_sec == time.localtime().tm_sec and not stop_event.is_set():
             await asyncio.sleep(0.1)
 
@@ -84,8 +86,10 @@ async def main(identifier: str) -> None:
     ):
 
         # Start measurement tasks
-        proc_gpu = asyncio.create_task(measure_gpu(stop_event, f_gpu))
-        proc_total = asyncio.create_task(measure_total(stop_event, f_total))
+        proc_gpu = asyncio.create_task(write_to_file(stop_event, f_gpu, measure_gpu))
+        proc_total = asyncio.create_task(
+            write_to_file(stop_event, f_total, measure_total)
+        )
 
         # Stop measurement tasks when benchmark has concluded
         while proc_bench.is_alive():

@@ -103,11 +103,10 @@ async def main(identifier: str) -> None:
 if __name__ == "__main__":
     p = argparse.ArgumentParser()
     p.add_argument(
-        "-i",
-        "--id",
+        "id",
         type=str,
         nargs="?",
-        metavar="string",
+        metavar="identifier",
         default="default",
         help="identifier for this run (will overwrite data if not unique)",
     )

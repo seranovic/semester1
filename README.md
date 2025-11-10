@@ -31,16 +31,18 @@ While on bead67, run the following script to start the benchmark and save the me
 ```sh
 python3 main.py
 ```
-Data will by default be saved with the prefix "default".
+Data will by default be saved with the identifier-prefix "default".
 
 You can use the following arguments:
 
 ```
-usage: main.py [-h] [-i [name]]
+usage: main.py [-h] [identifier]
+
+positional arguments:
+  identifier  identifier for this run (will overwrite data if not unique)
 
 options:
-  -h, --help         show this help message and exit
-  -i, --id [string]  identifier for this run (will overwrite data if not unique)
+  -h, --help  show this help message and exit
 ```
 
 Data is written to disk after each measurement, so you can check the progress with ```tail -f data/<filename>.csv```.

@@ -46,7 +46,7 @@ async def write_to_file(
     """
 
     out.write("time,power\n")
-    i = 1
+    i = 0
 
     while not stop_event.is_set():
         measurement = await measure_func()

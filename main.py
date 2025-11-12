@@ -1,5 +1,6 @@
 import argparse
 import asyncio
+import os
 import subprocess
 import time
 from io import TextIOWrapper
@@ -85,9 +86,12 @@ async def main(identifier: str) -> None:
     stop_event = asyncio.Event()
 
     # Stream to files
+    data_dir = "data"
+    if not os.path.exists(data_dir):
+        os.makedirs(data_dir)
     with (
-        open(f"data/{identifier}-gpu.csv", "w", buffering=1) as f_gpu,
-        open(f"data/{identifier}-total.csv", "w", buffering=1) as f_total,
+        open(f"{data_dir}/{identifier}-gpu.csv", "w", buffering=1) as f_gpu,
+        open(f"{data_dir}/{identifier}-total.csv", "w", buffering=1) as f_total,
     ):
 
         # Start measurement tasks

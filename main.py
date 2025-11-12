@@ -96,9 +96,6 @@ async def main(identifier: str) -> None:
             await asyncio.sleep(0.5)
         stop_event.set()
 
-        # Wait for measurement tasks
-        await asyncio.gather(proc_gpu, proc_total)
-
 
 if __name__ == "__main__":
     p = argparse.ArgumentParser()

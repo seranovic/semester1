@@ -67,8 +67,14 @@ def run_bench() -> None:
 
     time.sleep(15)  # for measuring pre-benchmark idle power draw
     proc = subprocess.run(
-        ["python3", "benchmark_LJ.py", "default"], capture_output=True
+        ["python3", "benchmark_LJ.py", "default"],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE
     )
+
+    # Discard script output
+    proc.stdout.close()
+    proc.stderr.close()
 
 
 async def main(identifier: str) -> None:

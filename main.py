@@ -1,6 +1,5 @@
 import argparse
 import asyncio
-import multiprocessing
 import subprocess
 import time
 from io import TextIOWrapper
@@ -35,7 +34,9 @@ async def measure_gpu() -> str:
 
 
 async def write_to_file(
-    stop_event: asyncio.Event, out: TextIOWrapper, measure_func: Callable[[], Awaitable[str]]
+    stop_event: asyncio.Event,
+    out: TextIOWrapper,
+    measure_func: Callable[[], Awaitable[str]],
 ) -> None:
     """
     Write power draw measurements to file in once per second.
@@ -60,27 +61,25 @@ async def write_to_file(
         i += 1
 
 
-def run_bench() -> None:
+async def run_bench(identifier: str) -> None:
     """
-    Run benchmarking script. Should be called as a separate process.
+    Run benchmarking script.
     """
 
-    time.sleep(15)  # for measuring pre-benchmark idle power draw
-    proc = subprocess.run(
-        ["python3", "benchmark_LJ.py", "default"],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE
+    await asyncio.sleep(15)  # for measuring pre-benchmark idle power draw
+    proc = await asyncio.create_subprocess_exec(
+        "python3",
+        "benchmark_LJ.py",
+        identifier,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
     )
-
-    # Discard script output
-    proc.stdout.close()
-    proc.stderr.close()
+    await proc.communicate()
 
 
 async def main(identifier: str) -> None:
     # Start benchmark as its own process
-    proc_bench = multiprocessing.Process(target=run_bench)
-    proc_bench.start()
+    proc_bench = asyncio.create_task(run_bench(identifier=identifier))
 
     # Stop event for measuring tasks
     stop_event = asyncio.Event()
@@ -98,8 +97,7 @@ async def main(identifier: str) -> None:
         )
 
         # Stop measurement tasks when benchmark has concluded
-        while proc_bench.is_alive():
-            await asyncio.sleep(0.5)
+        await proc_bench
         stop_event.set()
 
 

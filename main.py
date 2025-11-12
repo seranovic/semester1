@@ -1,10 +1,10 @@
 import argparse
 import asyncio
-from io import TextIOWrapper
 import multiprocessing
 import subprocess
 import time
-from typing import Callable
+from io import TextIOWrapper
+from typing import Awaitable, Callable
 
 from ENG110_python import get_eng110_data
 
@@ -35,7 +35,7 @@ async def measure_gpu() -> str:
 
 
 async def write_to_file(
-    stop_event: asyncio.Event, out: TextIOWrapper, measure_func: Callable[None, str]
+    stop_event: asyncio.Event, out: TextIOWrapper, measure_func: Callable[[], Awaitable[str]]
 ) -> None:
     """
     Write power draw measurements to file in once per second.

@@ -36,13 +36,14 @@ Data will by default be saved with the identifier-prefix "default".
 You can use the following arguments:
 
 ```
-usage: main.py [-h] [identifier]
+usage: main.py [-h] [-a] [identifier]
 
 positional arguments:
-  identifier  identifier for this run (will overwrite data if not unique)
+  identifier       identifier for this run (will overwrite data if not unique)
 
 options:
-  -h, --help  show this help message and exit
+  -h, --help       show this help message and exit
+  -a, --autotuner  use autotuner
 ```
 
 Data is written to disk after each measurement, so you can check the progress with ```tail -f data/<filename>.csv```.

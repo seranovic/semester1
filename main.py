@@ -62,25 +62,29 @@ async def write_to_file(
         i += 1
 
 
-async def run_bench(identifier: str) -> None:
+async def run_bench(identifier: str, autotuner: bool) -> None:
     """
     Run benchmarking script.
     """
 
+    command = ["python3", "benchmark_LJ.py", identifier]
+    if autotuner:
+        command.append("autotuner")
+
     await asyncio.sleep(15)  # for measuring pre-benchmark idle power draw
     proc = await asyncio.create_subprocess_exec(
-        "python3",
-        "benchmark_LJ.py",
-        identifier,
+        *command,
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
     )
     await proc.communicate()
 
 
-async def main(identifier: str) -> None:
+async def main(identifier: str, autotuner: bool) -> None:
     # Start benchmark as its own process
-    proc_bench = asyncio.create_task(run_bench(identifier=identifier))
+    proc_bench = asyncio.create_task(
+        run_bench(identifier=identifier, autotuner=autotuner)
+    )
 
     # Stop event for measuring tasks
     stop_event = asyncio.Event()
@@ -115,6 +119,12 @@ if __name__ == "__main__":
         default="default",
         help="identifier for this run (will overwrite data if not unique)",
     )
+    p.add_argument(
+        "-a",
+        "--autotuner",
+        action="store_true",
+        help="use autotuner",
+    )
     args = p.parse_args()
 
-    asyncio.run(main(identifier=args.id))
+    asyncio.run(main(identifier=args.id, autotuner=args.autotuner))

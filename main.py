@@ -45,16 +45,22 @@ async def write_to_file(stop_event: asyncio.Event, out: TextIOWrapper) -> None:
     """
 
     out.write("time,gpu,total\n")
-    i = 0
+    i = 0  # tick counter
+    dt = 1  # tick rate in seconds
+    t_start = time.time()
 
     while not stop_event.is_set():
-        gpu, total = await asyncio.gather(measure_gpu(), measure_total())
-        out.write(f"{i},{gpu},{total}\n")
+        t_sched = t_start + i * dt  # scheduled measurement
 
-        # Pause sampling until next second
-        t = time.localtime()
-        while t.tm_sec == time.localtime().tm_sec and not stop_event.is_set():
-            await asyncio.sleep(0.1)
+        gpu, total = await asyncio.gather(measure_gpu(), measure_total())
+        out.write(f"{int(t_sched-t_start)},{gpu},{total}\n")
+
+        # Pause sampling for dt seconds
+        t_current = time.time()
+        t_next = t_sched + dt  # next measurement
+        t_sleep = t_next - t_current
+        if t_sleep > 0 and not stop_event.is_set():
+            await asyncio.sleep(t_sleep)
 
         i += 1
 

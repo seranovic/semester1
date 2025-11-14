@@ -10,12 +10,11 @@ import seaborn.objects as so
 
 
 ```python
-identifier = "default"  # FIXME: set identifier of csv dataset
+# FIXME: set identifier prefix and simulator
+identifier = "default"
+sim = "gamdpy"  # one of gamdpy, gamdpy-at
 
-gpu = pd.read_csv(f"data/{identifier}-gpu.csv")
-total = pd.read_csv(f"data/{identifier}-total.csv")
-
-combined = pd.merge(gpu, total, how="inner", on="time", suffixes=("_gpu", "_total"))
+df = pd.read_csv(f"data/{identifier}-{sim}.csv")
 ```
 
 ## Presentation & analysis
@@ -27,18 +26,18 @@ Displays two graphs stacked on top of each other. Easily readable.
 
 ```python
 (
-    so.Plot(data=combined, x=combined.time)
-    .add(so.Area(edgewidth=0), y="power_total")
-    .add(so.Line(linewidth=1), y="power_total", label="Total")
-    .add(so.Area(edgewidth=0, color="green"), y="power_gpu")
-    .add(so.Line(linewidth=1, color="green"), y="power_gpu", label="GPU")
+    so.Plot(data=df, x=df.time)
+    .add(so.Area(edgewidth=0), y="total")
+    .add(so.Line(linewidth=1), y="total", label="Total")
+    .add(so.Area(edgewidth=0, color="green"), y="gpu")
+    .add(so.Line(linewidth=1, color="green"), y="gpu", label="GPU")
     .label(
         x="Time (s)",
         y="Power draw (W)",
-        title=f"gamdpy {identifier}",
+        title=f"{sim} {identifier}",
         legend="Hardware measured"
     )
-)#.save(f"fig/{identifier}-stacked")  # uncomment to save
+)#.save(f"fig/{identifier}-{sim}-stacked")  # uncomment to save
 ```
 
 
@@ -57,16 +56,16 @@ Displays two graphs side by side. Might have a purpose in the report later on.
 
 ```python
 (
-    so.Plot(data=combined, x=combined.time)
-    .pair(y=["power_gpu", "power_total"])
+    so.Plot(data=df, x=df.time)
+    .pair(y=["gpu", "total"])
     .add(so.Area(edgewidth=0)).add(so.Line(linewidth=1))
     .label(
         x="Time (s)",
         y0="GPU power draw (W)",
         y1="Total power draw (W)",
-        title=f"gamdpy {identifier}"
+        title=f"{sim} {identifier}"
     )
-)#.save(f"fig/{identifier}-paired")
+)#.save(f"fig/{identifier}-{sim}-paired")
 ```
 
 
@@ -85,14 +84,14 @@ Displays the interval between two y-values. Looks kinda goofy at this point.
 
 ```python
 (
-    so.Plot(combined, x=combined.time, ymin="power_gpu", ymax="power_total")
+    so.Plot(df, x=df.time, ymin="gpu", ymax="total")
     .add(so.Band(edgewidth=1))
     .label(
         x="Time (sec)",
         y="Power draw (W)",
-        title=f"Power draw - gamdpy {identifier}"
+        title=f"Power draw - {sim} {identifier}"
     )
-)#.save(f"fig/{identifier}-band")
+)#.save(f"fig/{identifier}-{sim}-band")
 ```
 
 

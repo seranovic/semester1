@@ -34,25 +34,22 @@ async def measure_gpu() -> str:
     return measurement
 
 
-async def write_to_file(
-    stop_event: asyncio.Event,
-    out: TextIOWrapper,
-    measure_func: Callable[[], Awaitable[str]],
-) -> None:
+async def write_to_file(stop_event: asyncio.Event, out: TextIOWrapper) -> None:
     """
-    Write power draw measurements to file in once per second.
+    Write power draw measurements to file once per second.
 
-    Format: time,power
+    Format: time,gpu,total
         time:   timestamp in seconds
-        power:  power draw in watts
+        gpu:    gpu power draw in watts
+        total:  total power draw in watts
     """
 
-    out.write("time,power\n")
+    out.write("time,gpu,total\n")
     i = 0
 
     while not stop_event.is_set():
-        measurement = await measure_func()
-        out.write(f"{i},{measurement}\n")
+        gpu, total = await asyncio.gather(measure_gpu(), measure_total())
+        out.write(f"{i},{gpu},{total}\n")
 
         # Pause sampling until next second
         t = time.localtime()
@@ -81,32 +78,32 @@ async def run_bench(identifier: str, autotuner: bool) -> None:
 
 
 async def main(identifier: str, autotuner: bool) -> None:
-    # Start benchmark as its own process
-    proc_bench = asyncio.create_task(
-        run_bench(identifier=identifier, autotuner=autotuner)
-    )
-
-    # Stop event for measuring tasks
-    stop_event = asyncio.Event()
-
-    # Stream to files
     data_dir = "data"
     if not os.path.exists(data_dir):
         os.makedirs(data_dir)
-    with (
-        open(f"{data_dir}/{identifier}-gpu.csv", "w", buffering=1) as f_gpu,
-        open(f"{data_dir}/{identifier}-total.csv", "w", buffering=1) as f_total,
-    ):
 
-        # Start measurement tasks
-        proc_gpu = asyncio.create_task(write_to_file(stop_event, f_gpu, measure_gpu))
-        proc_total = asyncio.create_task(
-            write_to_file(stop_event, f_total, measure_total)
+    filename = f"{identifier}-gamdpy"
+    if autotuner:
+        filename += "-at"
+
+    # Stream to file
+    with open(f"{data_dir}/{filename}.csv", "w", buffering=1) as f:
+
+        # Stop event for measuring tasks
+        stop_event = asyncio.Event()
+
+        # Start writing measurements to disk
+        task_measure = asyncio.create_task(write_to_file(stop_event, f))
+
+        # Start benchmark
+        proc_bench = asyncio.create_task(
+            run_bench(identifier=identifier, autotuner=autotuner)
         )
 
         # Stop measurement tasks when benchmark has concluded
         await proc_bench
         stop_event.set()
+        await task_measure
 
 
 if __name__ == "__main__":

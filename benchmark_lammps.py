@@ -50,8 +50,10 @@ def main() -> None:
     target_time_in_sec = 5.0
     magic_number = 1e7
 
+    print("      N      TPS   Steps    Time")
+
     for nxyz in nxyzs:
-        lmp = lammps()
+        lmp = lammps(cmdargs=["-screen", "none"])
         setup_lennard_jones_system(lmp, *nxyz)
         N = lmp.get_natoms()
         time_in_sec = 0

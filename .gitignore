@@ -7,3 +7,4 @@ __pycache__
 
 # TODO: prevent benchmark from dumping files here
 Data/
+log.lammps

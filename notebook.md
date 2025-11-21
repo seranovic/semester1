@@ -12,7 +12,7 @@ import seaborn.objects as so
 ```python
 # FIXME: set identifier prefix and simulator
 identifier = "default"
-sim = "gamdpy"  # one of gamdpy, gamdpy-at
+sim = "gamdpy"  # one of gamdpy, gamdpy-at, lammps
 
 df = pd.read_csv(f"data/{identifier}-{sim}.csv")
 ```

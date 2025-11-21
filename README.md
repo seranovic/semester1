@@ -14,6 +14,7 @@ Connect to vpn.ruc.dk, then ssh into one of the following targets:
   ```ssh -J <username>@dirac.ruc.dk <username>@bead67```
 
 Alternatively, add this snippet to your ssh config:
+
 ```sshconfig
 Host dirac
     HostName dirac.ruc.dk
@@ -23,27 +24,46 @@ Host i42 i43 bead50 bead67
     User <username>
     ProxyJump dirac
 ```
+
 and run ```ssh <target-hostname>```.
 
 ## Collecting Data
 
-While on bead67, run the following script to start the benchmark and save the measurements to csv:
+Set up preferred system sizes in ```nxyzs.txt```.
+
+While on bead67, run ```main.py``` to start the benchmark and save the measurements to csv:
+
 ```sh
-python3 main.py
+# Example: run gamdpy with autotuner and save data with the prefix "default"
+python3 main.py -i default gamdpy -a
 ```
-Data will by default be saved with the identifier-prefix "default".
 
 You can use the following arguments:
 
 ```
-usage: main.py [-h] [-a] [identifier]
+usage: main.py [-h] [-i [identifier]] [-d] {gamdpy,lammps} ...
 
 positional arguments:
-  identifier       identifier for this run (will overwrite data if not unique)
+  {gamdpy,lammps}
+
+options:
+  -h, --help            show this help message and exit
+  -i, --id [identifier]
+                        identifier for this run (will overwrite data if not unique)
+  -d, --debug           run benchmark with small system sizes (~30-60 seconds per run)
+
+# for gamdpy
+usage: main.py gamdpy [-h] [-a]
 
 options:
   -h, --help       show this help message and exit
   -a, --autotuner  use autotuner
+
+# for lammps
+usage: main.py lammps [-h]
+
+options:
+  -h, --help  show this help message and exit
 ```
 
 Data is written to disk after each measurement, so you can check the progress with ```tail -f data/<filename>.csv```.
@@ -51,16 +71,9 @@ Data is written to disk after each measurement, so you can check the progress wi
 ## Send/Retrieve Data
 
 Use rsync from your local machine to copy files to/from the server:
+
 ```
 rsync <source-path> <destination-path>
 ```
+
 where a remote path follows the syntax: ```<username>@dirac.ruc.dk:/absolute/path```, or if you've set up your ssh config: ```dirac:/absolute/path```.
-
-## Jupyter
-
-While on bead50, start a jupyter environment on bead67 by running:
-```bash
-source "/net/debye/jklust/slurm/jupyter as a job/jupyter_slurm_job.sh"
-jupyter-gpu -w bead67
-```
-and following the printed instructions.

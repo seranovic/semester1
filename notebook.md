@@ -25,7 +25,7 @@ Displays two graphs stacked on top of each other. Easily readable.
 
 
 ```python
-(
+p = (
     so.Plot(data=df, x=df.time)
     .add(so.Area(edgewidth=0), y="total")
     .add(so.Line(linewidth=1), y="total", label="Total")
@@ -37,7 +37,9 @@ Displays two graphs stacked on top of each other. Easily readable.
         title=f"{sim} {identifier}",
         legend="Hardware measured"
     )
-)#.save(f"fig/{identifier}-{sim}-stacked")  # uncomment to save
+)
+#p.save(f"fig/{identifier}-{sim}-stacked")  # uncomment to save
+p
 ```
 
 
@@ -55,7 +57,7 @@ Displays two graphs side by side. Might have a purpose in the report later on.
 
 
 ```python
-(
+p = (
     so.Plot(data=df, x=df.time)
     .pair(y=["gpu", "total"])
     .add(so.Area(edgewidth=0)).add(so.Line(linewidth=1))
@@ -65,7 +67,9 @@ Displays two graphs side by side. Might have a purpose in the report later on.
         y1="Total power draw (W)",
         title=f"{sim} {identifier}"
     )
-)#.save(f"fig/{identifier}-{sim}-paired")
+)
+#p.save(f"fig/{identifier}-{sim}-paired")
+p
 ```
 
 
@@ -83,7 +87,7 @@ Displays the interval between two y-values. Looks kinda goofy at this point.
 
 
 ```python
-(
+p = (
     so.Plot(df, x=df.time, ymin="gpu", ymax="total")
     .add(so.Band(edgewidth=1))
     .label(
@@ -91,7 +95,9 @@ Displays the interval between two y-values. Looks kinda goofy at this point.
         y="Power draw (W)",
         title=f"Power draw - {sim} {identifier}"
     )
-)#.save(f"fig/{identifier}-{sim}-band")
+)
+#p.save(f"fig/{identifier}-{sim}-band")
+p
 ```
 
 

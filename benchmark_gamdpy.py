@@ -193,28 +193,28 @@ def main(integrator, nblist, identifier, autotune, debug):
         time.sleep(sleep_time)
 
     # Save this run to csv file
-    if autotune:
-        df = pd.DataFrame({"N": Ns, "TPS": tpss, "TPS_AT": tpss_at})
-        data = {
-            "N": Ns,
-            "TPS": tpss,
-            "TPS_AT": tpss_at,
-            "compute_plans": compute_plans,
-            "compute_plans_at": compute_plans_at,
-        }
-    else:
-        df = pd.DataFrame(
-            {"N": Ns, "TPS": tpss},
-        )
-        data = {
-            "N": Ns,
-            "TPS": tpss,
-            "compute_plans": compute_plans,
-        }
-
-    df.to_csv(f"Data/benchmark_LJ_{identifier}.csv", index=False)
-    with open(f"Data/benchmark_LJ_{identifier}.pkl", "wb") as file:
-        pickle.dump(data, file)
+    # if autotune:
+    #     df = pd.DataFrame({"N": Ns, "TPS": tpss, "TPS_AT": tpss_at})
+    #     data = {
+    #         "N": Ns,
+    #         "TPS": tpss,
+    #         "TPS_AT": tpss_at,
+    #         "compute_plans": compute_plans,
+    #         "compute_plans_at": compute_plans_at,
+    #     }
+    # else:
+    #     df = pd.DataFrame(
+    #         {"N": Ns, "TPS": tpss},
+    #     )
+    #     data = {
+    #         "N": Ns,
+    #         "TPS": tpss,
+    #         "compute_plans": compute_plans,
+    #     }
+    #
+    # df.to_csv(f"Data/benchmark_LJ_{identifier}.csv", index=False)
+    # with open(f"Data/benchmark_LJ_{identifier}.pkl", "wb") as file:
+    #     pickle.dump(data, file)
 
 
 if __name__ == "__main__":

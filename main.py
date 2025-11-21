@@ -2,6 +2,7 @@ import argparse
 import asyncio
 import os
 import subprocess
+import sys
 import time
 from io import TextIOWrapper
 
@@ -64,36 +65,34 @@ async def write_to_file(stop_event: asyncio.Event, out: TextIOWrapper) -> None:
         i += 1
 
 
-async def run_gamdpy_bench(autotuner: bool) -> None:
+async def run_bench(backend: str, debug: bool, autotuner: bool) -> None:
     """
-    Run gamdpy benchmarking script.
+    Run benchmarking script.
     """
 
-    command = ["python3", "benchmark_gamdpy.py"]
+    command = ["python3", f"benchmark_{backend}.py"]
+
+    if debug:
+        command.append("debug")
+        sleep_time = 5
+        stdout = None
+        stderr = None
+    else:
+        sleep_time = 15
+        stdout = asyncio.subprocess.PIPE
+        stderr = asyncio.subprocess.PIPE
+
     if autotuner:
         command.append("autotuner")
 
-    await asyncio.sleep(15)  # for measuring pre-benchmark idle power draw
+    if debug:
+        print(f"Waiting for {sleep_time} seconds...")
+    await asyncio.sleep(sleep_time)  # for measuring pre-benchmark idle power draw
+
     proc = await asyncio.create_subprocess_exec(
         *command,
-        stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE,
-    )
-    await proc.communicate()
-
-
-async def run_lammps_bench() -> None:
-    """
-    Run lammps benchmarking script.
-    """
-
-    command = ["python3", "benchmark_lammps.py"]
-
-    await asyncio.sleep(15)  # for measuring pre-benchmark idle power draw
-    proc = await asyncio.create_subprocess_exec(
-        *command,
-        stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE,
+        stdout=stdout,
+        stderr=stdout,
     )
     await proc.communicate()
 
@@ -101,6 +100,7 @@ async def run_lammps_bench() -> None:
 async def main(args) -> None:
     identifier = args.id
     backend = ""
+    debug = False
     autotuner = False
 
     if args.backend == "gamdpy":
@@ -109,6 +109,9 @@ async def main(args) -> None:
             autotuner = True
     else:
         backend = "lammps"
+
+    if args.debug:
+        debug = True
 
     data_dir = "data"
     if not os.path.exists(data_dir):
@@ -128,10 +131,9 @@ async def main(args) -> None:
         task_measure = asyncio.create_task(write_to_file(stop_event, f))
 
         # Start benchmark
-        if backend == "gamdpy":
-            proc_bench = asyncio.create_task(run_gamdpy_bench(autotuner=autotuner))
-        else:
-            proc_bench = asyncio.create_task(run_lammps_bench())
+        proc_bench = asyncio.create_task(
+            run_bench(backend=backend, debug=debug, autotuner=autotuner)
+        )
 
         # Stop measurement tasks when benchmark has concluded
         await proc_bench
@@ -146,12 +148,16 @@ if __name__ == "__main__":
         "-i",
         "--id",
         type=str,
-        # nargs=1,
+        nargs="?",
         metavar="identifier",
-        required=True,
         help="identifier for this run (will overwrite data if not unique)",
     )
-    # TODO: add debug flag for small system size runs
+    p.add_argument(
+        "-d",
+        "--debug",
+        action="store_true",
+        help="run benchmark with small system sizes (~30-60 seconds per run)",
+    )
     sub_ps = p.add_subparsers(required=True, dest="backend")
 
     # gamdpy parser
@@ -168,5 +174,12 @@ if __name__ == "__main__":
     # TODO: add gpu-accel flag
 
     args = p.parse_args()
+
+    if not args.id and not args.debug:
+        print("Error: specify identifier or debug mode")
+        sys.exit(1)
+
+    if args.debug:
+        args.id = "debug"
 
     asyncio.run(main(args))

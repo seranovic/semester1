@@ -1,3 +1,4 @@
+import sys
 import time
 from typing import Callable
 
@@ -44,9 +45,14 @@ def run_benchmark(lmp: Callable, steps: int) -> int:
     return elapsed
 
 
-def main() -> None:
-    nxyzs = np.genfromtxt("nxyzs.txt", dtype=int, delimiter=",", autostrip=True)
-    sleep_time = 15
+def main(debug: str | None) -> None:
+    if debug:
+        nxyzs = ((4, 4, 8), (4, 8, 8))
+        sleep_time = 5
+    else:
+        nxyzs = np.genfromtxt("nxyzs.txt", dtype=int, delimiter=",", autostrip=True)
+        sleep_time = 15
+    nxyzs = ((4, 4, 8), (4, 8, 8))
 
     target_time_in_sec = 5.0
     magic_number = 1e7
@@ -71,4 +77,5 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    debug = "debug" in sys.argv
+    main(debug=debug)

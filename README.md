@@ -41,15 +41,16 @@ python3 main.py -i default gamdpy -a
 You can use the following arguments:
 
 ```
-usage: main.py [-h] [-i [identifier]] [-d] {gamdpy,lammps} ...
+usage: main.py [-h] [-i [identifier]] [-v] [-d] {gamdpy,lammps} ...
 
 positional arguments:
-  {gamdpy,lammps}
+  {gamdpy,lammps}       backend
 
 options:
   -h, --help            show this help message and exit
   -i, --id [identifier]
                         identifier for this run (will overwrite data if not unique)
+  -v, --verbose         increase output verbosity
   -d, --debug           run benchmark with small system sizes (~30-60 seconds per run)
 
 # for gamdpy

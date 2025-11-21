@@ -65,22 +65,24 @@ async def write_to_file(stop_event: asyncio.Event, out: TextIOWrapper) -> None:
         i += 1
 
 
-async def run_bench(backend: str, debug: bool, autotuner: bool) -> None:
+async def run_bench(backend: str, autotuner: bool, debug: bool, verbose: bool) -> None:
     """
     Run benchmarking script.
     """
 
     command = ["python3", f"benchmark_{backend}.py"]
 
+    sleep_time = 15
+    stdout = asyncio.subprocess.PIPE
+    stderr = asyncio.subprocess.PIPE
+
     if debug:
         command.append("debug")
         sleep_time = 5
+
+    if verbose:
         stdout = None
         stderr = None
-    else:
-        sleep_time = 15
-        stdout = asyncio.subprocess.PIPE
-        stderr = asyncio.subprocess.PIPE
 
     if autotuner:
         command.append("autotuner")
@@ -89,11 +91,7 @@ async def run_bench(backend: str, debug: bool, autotuner: bool) -> None:
         print(f"Waiting for {sleep_time} seconds...")
     await asyncio.sleep(sleep_time)  # for measuring pre-benchmark idle power draw
 
-    proc = await asyncio.create_subprocess_exec(
-        *command,
-        stdout=stdout,
-        stderr=stdout,
-    )
+    proc = await asyncio.create_subprocess_exec(*command, stdout=stdout, stderr=stdout)
     await proc.communicate()
 
 
@@ -101,6 +99,7 @@ async def main(args) -> None:
     identifier = args.id
     backend = ""
     debug = False
+    verbose = False
     autotuner = False
 
     if args.backend == "gamdpy":
@@ -112,6 +111,9 @@ async def main(args) -> None:
 
     if args.debug:
         debug = True
+
+    if args.verbose:
+        verbose = True
 
     data_dir = "data"
     if not os.path.exists(data_dir):
@@ -132,7 +134,12 @@ async def main(args) -> None:
 
         # Start benchmark
         proc_bench = asyncio.create_task(
-            run_bench(backend=backend, debug=debug, autotuner=autotuner)
+            run_bench(
+                backend=backend,
+                autotuner=autotuner,
+                debug=debug,
+                verbose=verbose,
+            )
         )
 
         # Stop measurement tasks when benchmark has concluded
@@ -153,12 +160,22 @@ if __name__ == "__main__":
         help="identifier for this run (will overwrite data if not unique)",
     )
     p.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="increase output verbosity",
+    )
+    p.add_argument(
         "-d",
         "--debug",
         action="store_true",
         help="run benchmark with small system sizes (~30-60 seconds per run)",
     )
-    sub_ps = p.add_subparsers(required=True, dest="backend")
+    sub_ps = p.add_subparsers(
+        required=True,
+        dest="backend",
+        help="backend",
+    )
 
     # gamdpy parser
     p_gamdpy = sub_ps.add_parser("gamdpy")
@@ -181,5 +198,6 @@ if __name__ == "__main__":
 
     if args.debug:
         args.id = "debug"
+        args.verbose = True
 
     asyncio.run(main(args))

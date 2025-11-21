@@ -123,28 +123,29 @@ def run_benchmark(
 def main(integrator, nblist, identifier, autotune):
     config.CUDA_LOW_OCCUPANCY_WARNINGS = False
     print(f"Benchmarking LJ with {integrator} integrator:")
-    nxyzs = (
-        (8, 8, 8),
-        (8, 8, 16),
-        (8, 16, 16),
-        (16, 16, 16),
-        (16, 16, 32),
-        (16, 32, 32),
-        (32, 32, 32),
-    )
-    if nblist == "Nsquared":
-        nxyzs = (
-            (4, 4, 8),
-            (4, 8, 8),
-        ) + nxyzs
-    if nblist == "LinkedLists":
-        nxyzs += (32, 32, 64), (32, 64, 64), (64, 64, 64)
-    if nblist == "default":
-        nxyzs = (
-            (4, 4, 8),
-            (4, 8, 8),
-        ) + nxyzs
-        nxyzs += (32, 32, 64), (32, 64, 64), (64, 64, 64)
+    nxyzs = np.genfromtxt("nxyzs.txt", dtype=int, delimiter=",", autostrip=True)
+    # nxyzs = (
+    #     (8, 8, 8),
+    #     (8, 8, 16),
+    #     (8, 16, 16),
+    #     (16, 16, 16),
+    #     (16, 16, 32),
+    #     (16, 32, 32),
+    #     (32, 32, 32),
+    # )
+    # if nblist == "Nsquared":
+    #     nxyzs = (
+    #         (4, 4, 8),
+    #         (4, 8, 8),
+    #     ) + nxyzs
+    # if nblist == "LinkedLists":
+    #     nxyzs += (32, 32, 64), (32, 64, 64), (64, 64, 64)
+    # if nblist == "default":
+    #     nxyzs = (
+    #         (4, 4, 8),
+    #         (4, 8, 8),
+    #     ) + nxyzs
+    #     nxyzs += (32, 32, 64), (32, 64, 64), (64, 64, 64)
     # nxyzs = ( (4, 4, 8), (4, 8, 8) ) # For quick debuging
     # nxyzs = ( (32, 32, 32), ) # For quick debuging
     Ns = []
@@ -214,7 +215,7 @@ def main(integrator, nblist, identifier, autotune):
 if __name__ == "__main__":
     integrator = "NVE"
 
-    identifier = sys.argv[1]
+    identifier = "default"
 
     if "NVT" in sys.argv:
         integrator = "NVT"

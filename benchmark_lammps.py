@@ -1,6 +1,7 @@
 import time
 from typing import Callable
 
+import numpy as np
 from lammps import lammps
 
 
@@ -44,8 +45,8 @@ def run_benchmark(lmp: Callable, steps: int) -> int:
 
 
 def main() -> None:
-    nxyzs = ((4, 4, 8), (4, 8, 8))
-    sleep_time = 5
+    nxyzs = np.genfromtxt("nxyzs.txt", dtype=int, delimiter=",", autostrip=True)
+    sleep_time = 15
 
     target_time_in_sec = 5.0
     magic_number = 1e7
@@ -53,7 +54,7 @@ def main() -> None:
     print("      N      TPS   Steps    Time")
 
     for nxyz in nxyzs:
-        lmp = lammps(cmdargs=["-screen", "none"])
+        lmp = lammps(cmdargs=["-screen", "none", "-log", "none"])
         setup_lennard_jones_system(lmp, *nxyz)
         N = lmp.get_natoms()
         time_in_sec = 0

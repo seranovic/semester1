@@ -87,8 +87,8 @@ async def run_bench(backend: str, autotuner: bool, debug: bool, verbose: bool) -
     if autotuner:
         command.append("autotuner")
 
-    if debug:
-        print(f"Waiting for {sleep_time} seconds...")
+    if verbose:
+        print(f"Waiting {sleep_time} seconds")
     await asyncio.sleep(sleep_time)  # for measuring pre-benchmark idle power draw
 
     proc = await asyncio.create_subprocess_exec(*command, stdout=stdout, stderr=stdout)

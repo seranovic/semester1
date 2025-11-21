@@ -120,31 +120,37 @@ def run_benchmark(
     return tps, time_in_sec, steps, sim.compute_plan.copy()
 
 
-def main(integrator, nblist, identifier, autotune):
+def main(integrator, nblist, identifier, autotune, debug):
     config.CUDA_LOW_OCCUPANCY_WARNINGS = False
     print(f"Benchmarking LJ with {integrator} integrator:")
-    nxyzs = (
-        (8, 8, 8),
-        (8, 8, 16),
-        (8, 16, 16),
-        (16, 16, 16),
-        (16, 16, 32),
-        (16, 32, 32),
-        (32, 32, 32),
-    )
-    if nblist == "Nsquared":
-        nxyzs = (
-            (4, 4, 8),
-            (4, 8, 8),
-        ) + nxyzs
-    if nblist == "LinkedLists":
-        nxyzs += (32, 32, 64), (32, 64, 64), (64, 64, 64)
-    if nblist == "default":
-        nxyzs = (
-            (4, 4, 8),
-            (4, 8, 8),
-        ) + nxyzs
-        nxyzs += (32, 32, 64), (32, 64, 64), (64, 64, 64)
+    if debug:
+        nxyzs = ((4, 4, 8), (4, 8, 8))
+        sleep_time = 5
+    else:
+        nxyzs = np.genfromtxt("nxyzs.txt", dtype=int, delimiter=",", autostrip=True)
+        sleep_time = 15
+    # nxyzs = (
+    #     (8, 8, 8),
+    #     (8, 8, 16),
+    #     (8, 16, 16),
+    #     (16, 16, 16),
+    #     (16, 16, 32),
+    #     (16, 32, 32),
+    #     (32, 32, 32),
+    # )
+    # if nblist == "Nsquared":
+    #     nxyzs = (
+    #         (4, 4, 8),
+    #         (4, 8, 8),
+    #     ) + nxyzs
+    # if nblist == "LinkedLists":
+    #     nxyzs += (32, 32, 64), (32, 64, 64), (64, 64, 64)
+    # if nblist == "default":
+    #     nxyzs = (
+    #         (4, 4, 8),
+    #         (4, 8, 8),
+    #     ) + nxyzs
+    #     nxyzs += (32, 32, 64), (32, 64, 64), (64, 64, 64)
     # nxyzs = ( (4, 4, 8), (4, 8, 8) ) # For quick debuging
     # nxyzs = ( (32, 32, 32), ) # For quick debuging
     Ns = []
@@ -183,38 +189,38 @@ def main(integrator, nblist, identifier, autotune):
             )
             tpss_at.append(tps_at)
             compute_plans_at.append(compute_plan_at)
-        print("Waiting 15 seconds")
-        time.sleep(15)
+        print(f"Waiting {sleep_time} seconds")
+        time.sleep(sleep_time)
 
     # Save this run to csv file
-    if autotune:
-        df = pd.DataFrame({"N": Ns, "TPS": tpss, "TPS_AT": tpss_at})
-        data = {
-            "N": Ns,
-            "TPS": tpss,
-            "TPS_AT": tpss_at,
-            "compute_plans": compute_plans,
-            "compute_plans_at": compute_plans_at,
-        }
-    else:
-        df = pd.DataFrame(
-            {"N": Ns, "TPS": tpss},
-        )
-        data = {
-            "N": Ns,
-            "TPS": tpss,
-            "compute_plans": compute_plans,
-        }
-
-    df.to_csv(f"Data/benchmark_LJ_{identifier}.csv", index=False)
-    with open(f"Data/benchmark_LJ_{identifier}.pkl", "wb") as file:
-        pickle.dump(data, file)
+    # if autotune:
+    #     df = pd.DataFrame({"N": Ns, "TPS": tpss, "TPS_AT": tpss_at})
+    #     data = {
+    #         "N": Ns,
+    #         "TPS": tpss,
+    #         "TPS_AT": tpss_at,
+    #         "compute_plans": compute_plans,
+    #         "compute_plans_at": compute_plans_at,
+    #     }
+    # else:
+    #     df = pd.DataFrame(
+    #         {"N": Ns, "TPS": tpss},
+    #     )
+    #     data = {
+    #         "N": Ns,
+    #         "TPS": tpss,
+    #         "compute_plans": compute_plans,
+    #     }
+    #
+    # df.to_csv(f"Data/benchmark_LJ_{identifier}.csv", index=False)
+    # with open(f"Data/benchmark_LJ_{identifier}.pkl", "wb") as file:
+    #     pickle.dump(data, file)
 
 
 if __name__ == "__main__":
     integrator = "NVE"
 
-    identifier = sys.argv[1]
+    identifier = "default"
 
     if "NVT" in sys.argv:
         integrator = "NVT"
@@ -227,6 +233,13 @@ if __name__ == "__main__":
     if "NSquared" in sys.argv:
         nblist = "NSquared"
 
+    debug = "debug" in sys.argv
     autotune = "autotune" in sys.argv
 
-    main(integrator=integrator, nblist=nblist, identifier=identifier, autotune=autotune)
+    main(
+        integrator=integrator,
+        nblist=nblist,
+        identifier=identifier,
+        autotune=autotune,
+        debug=debug,
+    )

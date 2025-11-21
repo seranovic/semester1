@@ -4,6 +4,3 @@
 # python
 __pycache__
 .ipynb_checkpoints
-
-# TODO: prevent benchmark from dumping files here
-Data/

@@ -3,13 +3,18 @@ import time
 from typing import Callable
 
 import numpy as np
-from lammps import lammps
+
+from lammps_py import lammps
 
 
-def setup_lennard_jones_system(lmp: Callable, nx: int, ny: int, nz: int) -> None:
+def setup_lennard_jones_system(
+    lmp: Callable, gpu_accel: bool, nx: int, ny: int, nz: int
+) -> None:
     """
     Set configuration commands for LJ benchmark
     """
+
+    gpu = "/gpu" if gpu_accel else ""
 
     config = f"""
     units           lj
@@ -23,7 +28,7 @@ def setup_lennard_jones_system(lmp: Callable, nx: int, ny: int, nz: int) -> None
 
     velocity        all create 1.44 87287 loop geom
 
-    pair_style      lj/cut 2.5
+    pair_style      lj/cut{gpu} 2.5
     pair_coeff      1 1 1.0 1.0 2.5
 
     neighbor        0.3 bin
@@ -45,7 +50,7 @@ def run_benchmark(lmp: Callable, steps: int) -> int:
     return elapsed
 
 
-def main(debug: str | None) -> None:
+def main(gpu_accel: bool, debug: bool) -> None:
     if debug:
         nxyzs = ((4, 4, 8), (4, 8, 8))
         sleep_time = 5
@@ -53,14 +58,18 @@ def main(debug: str | None) -> None:
         nxyzs = np.genfromtxt("nxyzs.txt", dtype=int, delimiter=",", autostrip=True)
         sleep_time = 15
 
+    cmdargs = ["-screen", "none", "-log", "none"]
+    if gpu_accel:
+        cmdargs.extend(["-sf", "gpu"])
+
     target_time_in_sec = 5.0
     magic_number = 1e7
 
     print("      N      TPS   Steps    Time")
 
     for nxyz in nxyzs:
-        lmp = lammps(cmdargs=["-screen", "none", "-log", "none"])
-        setup_lennard_jones_system(lmp, *nxyz)
+        lmp = lammps(cmdargs=cmdargs)
+        setup_lennard_jones_system(lmp, gpu_accel, *nxyz)
         N = lmp.get_natoms()
         time_in_sec = 0
         while time_in_sec < target_time_in_sec:
@@ -77,4 +86,5 @@ def main(debug: str | None) -> None:
 
 if __name__ == "__main__":
     debug = "debug" in sys.argv
-    main(debug=debug)
+    gpu_accel = "gpu" in sys.argv
+    main(gpu_accel=gpu_accel, debug=debug)

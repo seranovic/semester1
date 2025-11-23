@@ -1,6 +1,8 @@
 # The official repo for all files on the first semester project.
 
-## HPC Access
+## Usage
+
+### HPC Access
 
 Connect to vpn.ruc.dk, then ssh into one of the following targets:
 
@@ -27,7 +29,7 @@ Host i42 i43 bead50 bead67
 
 and run ```ssh <target-hostname>```.
 
-## Collecting Data
+### Collecting Data
 
 Set up preferred system sizes in ```nxyzs.txt```.
 
@@ -69,7 +71,7 @@ options:
 
 Data is written to disk after each measurement, so you can check the progress with ```tail -f data/<filename>.csv```.
 
-## Send/Retrieve Data
+### Send/Retrieve Data
 
 Use rsync from your local machine to copy files to/from the server:
 
@@ -78,3 +80,9 @@ rsync <source-path> <destination-path>
 ```
 
 where a remote path follows the syntax: ```<username>@dirac.ruc.dk:/absolute/path```, or if you've set up your ssh config: ```dirac:/absolute/path```.
+
+## License and Attribution
+
+This project uses a custom-built binary of LAMMPS, which is licensed under the GNU General Public License v2.0.
+
+The source code for LAMMPS is available [here](https://github.com/lammps/lammps/tree/3347d966c2024fa0946168a89dad2c076a2d669f).

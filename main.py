@@ -65,7 +65,9 @@ async def write_to_file(stop_event: asyncio.Event, out: TextIOWrapper) -> None:
         i += 1
 
 
-async def run_bench(backend: str, autotuner: bool, debug: bool, verbose: bool) -> None:
+async def run_bench(
+    backend: str, autotuner: bool, gpu_accel: bool, debug: bool, verbose: bool
+) -> None:
     """
     Run benchmarking script.
     """
@@ -87,6 +89,9 @@ async def run_bench(backend: str, autotuner: bool, debug: bool, verbose: bool) -
     if autotuner:
         command.append("autotuner")
 
+    if gpu_accel:
+        command.append("gpu")
+
     if verbose:
         print(f"Waiting {sleep_time} seconds")
     await asyncio.sleep(sleep_time)  # for measuring pre-benchmark idle power draw
@@ -101,6 +106,7 @@ async def main(args) -> None:
     debug = False
     verbose = False
     autotuner = False
+    gpu_accel = False
 
     if args.backend == "gamdpy":
         backend = "gamdpy"
@@ -108,6 +114,8 @@ async def main(args) -> None:
             autotuner = True
     else:
         backend = "lammps"
+        if args.gpu:
+            gpu_accel = True
 
     if args.debug:
         debug = True
@@ -137,6 +145,7 @@ async def main(args) -> None:
             run_bench(
                 backend=backend,
                 autotuner=autotuner,
+                gpu_accel=gpu_accel,
                 debug=debug,
                 verbose=verbose,
             )
@@ -188,7 +197,12 @@ if __name__ == "__main__":
 
     # lammps parser
     p_lammps = sub_ps.add_parser("lammps")
-    # TODO: add gpu-accel flag
+    p_lammps.add_argument(
+        "-g",
+        "--gpu",
+        action="store_true",
+        help="enable gpu-acceleration",
+    )
 
     args = p.parse_args()
 

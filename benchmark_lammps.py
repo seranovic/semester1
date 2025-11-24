@@ -4,7 +4,7 @@ from typing import Callable
 
 import numpy as np
 
-from lammps_py import lammps
+from lammps import lammps
 
 
 def setup_lennard_jones_system(

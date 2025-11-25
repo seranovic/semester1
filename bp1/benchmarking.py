@@ -45,15 +45,39 @@ def run_benchmark(lmp: lammps, steps: int) -> int:
     return elapsed
 
 
-async def run_batch(ctx: Context) -> None:
+async def run_batch(ctx: Context, debug: bool = False) -> None:
     """
     Run batch of benchmarks and save data to shared to state.
     """
 
-    nxyzs = ((4, 4, 8), (4, 8, 8))
-    sleep_time = 5
+    if debug:
+        nxyzs = (
+            (4, 4, 8),
+            (4, 8, 8),
+        )
+        sleep_time = 5
+        target_time_in_sec = 5.0
+    else:
+        nxyzs = (
+            (4, 4, 8),
+            (4, 8, 8),
+            (8, 8, 8),
+            (8, 8, 16),
+            (8, 16, 16),
+            (16, 16, 16),
+            (16, 16, 32),
+            (16, 32, 32),
+            (32, 32, 32),
+            (32, 32, 64),
+            (32, 64, 64),
+            (64, 64, 64),
+            (64, 64, 128),
+            (64, 128, 128),
+            (128, 128, 128),
+        )
+        sleep_time = 15
+        target_time_in_sec = 10.0
 
-    target_time_in_sec = 5.0
     magic_number = 1e7
 
     d = ctx.power_data

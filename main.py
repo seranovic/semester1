@@ -74,7 +74,13 @@ async def main(args: argparse.Namespace) -> None:
         asyncio.create_task(benchmarking.run_batch(ctx, debug=args.debug)),
         asyncio.create_task(measure_gpu(ctx)),
         asyncio.create_task(measure_total(ctx)),
-        asyncio.create_task(write_to_csv(ctx, prefix=args.prefix)),
+        asyncio.create_task(
+            write_to_csv(
+                ctx,
+                prefix=args.prefix,
+                backend=args.backend,
+            )
+        ),
     ]
 
     await asyncio.gather(*tasks)

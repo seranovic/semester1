@@ -1,15 +1,28 @@
 import asyncio
 import csv
+import os
 
 
-async def write_to_csv(ctx: Context) -> None:
+async def write_to_csv(
+    ctx: Context, prefix: str, backend: str, autotune: bool, gpu_accel: bool = False
+) -> None:
     """
     Continuously write data to csv.
     """
-    d = ctx.power_data
-    filename = "debug.csv"
 
-    with open(filename, "w", buffering=1) as f:
+    d = ctx.power_data
+
+    data_dir = "data"
+    if not os.path.exists(data_dir):
+        os.makedirs(data_dir)
+
+    filename = f"{prefix}-{backend}"
+    if autotune:
+        filename += f"-{at}"
+    elif gpu_accel:
+        filename += f"-{gpu}"
+
+    with open(f"{data_dir}/{filename}", "w", buffering=1) as f:
         w = csv.writer(f)
         w.writerow(
             [
@@ -27,8 +40,8 @@ async def write_to_csv(ctx: Context) -> None:
             w.writerow(
                 [
                     i,
-                    d.gpu,
-                    d.total,
+                    f"{d.gpu:.2f}",
+                    f"{d.total:.2f}",
                     d.is_running,
                     d.n_atoms,
                     d.tps,

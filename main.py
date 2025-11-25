@@ -85,7 +85,7 @@ async def run_bench(backend: str, autotuner: bool, debug: bool, verbose: bool) -
         stderr = None
 
     if autotuner:
-        command.append("autotuner")
+        command.append("autotune")
 
     if verbose:
         print(f"Waiting {sleep_time} seconds")

@@ -53,7 +53,7 @@ def main(debug: str | None) -> None:
         nxyzs = np.genfromtxt("nxyzs.txt", dtype=int, delimiter=",", autostrip=True)
         sleep_time = 15
 
-    target_time_in_sec = 5.0
+    target_time_in_sec = 10.0
     magic_number = 1e7
 
     print("      N      TPS   Steps    Time")

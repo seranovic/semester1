@@ -36,3 +36,7 @@ async def measure_total(ctx: Context) -> None:
             ctx.power_data.total = measurement
 
         await asyncio.sleep(1)
+
+
+if __name__ == "__main__":
+    pass

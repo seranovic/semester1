@@ -1,14 +1,13 @@
-import sys
 import time
-from typing import Callable
 
-import numpy as np
 from lammps import lammps
 
+from data_structures import Context
 
-def setup_lennard_jones_system(lmp: Callable, nx: int, ny: int, nz: int) -> None:
+
+def setup_lennard_jones_system(lmp: lammps, nx: int, ny: int, nz: int) -> None:
     """
-    Set configuration commands for LJ benchmark
+    Set configuration commands for LJ benchmark.
     """
 
     config = f"""
@@ -34,47 +33,54 @@ def setup_lennard_jones_system(lmp: Callable, nx: int, ny: int, nz: int) -> None
     lmp.commands_string(config)
 
 
-def run_benchmark(lmp: Callable, steps: int) -> int:
+def run_benchmark(lmp: lammps, steps: int) -> int:
     """
-    Run benchmark and return elapsed time
+    Run benchmark and return elapsed time.
     """
 
     start = time.time()
     lmp.cmd.run(steps)
     elapsed = time.time() - start
+
     return elapsed
 
 
-def main(debug: str | None) -> None:
-    if debug:
-        nxyzs = ((4, 4, 8), (4, 8, 8))
-        sleep_time = 5
-    else:
-        nxyzs = np.genfromtxt("nxyzs.txt", dtype=int, delimiter=",", autostrip=True)
-        sleep_time = 15
+async def run_batch(ctx: Context) -> None:
+    """
+    Run batch of benchmarks and save data to shared to state.
+    """
+
+    nxyzs = ((4, 4, 8), (4, 8, 8))
+    sleep_time = 5
 
     target_time_in_sec = 5.0
     magic_number = 1e7
 
-    print("      N      TPS   Steps    Time")
+    d = ctx.power_data
 
     for nxyz in nxyzs:
         lmp = lammps(cmdargs=["-screen", "none", "-log", "none"])
         setup_lennard_jones_system(lmp, *nxyz)
-        N = lmp.get_natoms()
+        n_atoms = lmp.get_natoms()
+
+        async with ctx.lock:
+            d.is_running = True
+            d.n_atoms = n_atoms
+
         time_in_sec = 0
         while time_in_sec < target_time_in_sec:
-            steps = int(magic_number / N)
+            steps = int(magic_number / n_atoms)
             time_in_sec = run_benchmark(lmp, steps)
             magic_number *= (2 * target_time_in_sec) / time_in_sec
         lmp.close()
 
-        tps = steps / time_in_sec
-        print(f"{N:7} {tps:.2e} {steps:.1e} {time_in_sec:.1e}")
-        print(f"Waiting for {sleep_time} seconds...")
-        time.sleep(sleep_time)
+        async with ctx.lock:
+            d.tps = steps / time_in_sec
+
+        await asyncio.sleep(sleep_time)
+
+    ctx.stop_event.set()
 
 
 if __name__ == "__main__":
-    debug = "debug" in sys.argv
-    main(debug=debug)
+    pass

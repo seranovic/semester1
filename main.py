@@ -56,12 +56,12 @@ def parse_args() -> argparse.Namespace:
 
     args = p.parse_args()
 
-    if not args.id and not args.debug:
+    if not args.prefix and not args.debug:
         print("Error: specify identifier or debug mode")
         sys.exit(1)
 
     if args.debug:
-        args.id = "debug"
+        args.prefix = "debug"
         # args.verbose = True
 
     return args

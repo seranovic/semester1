@@ -2,9 +2,15 @@ import asyncio
 import csv
 import os
 
+from .data_structures import Context
+
 
 async def write_to_csv(
-    ctx: Context, prefix: str, backend: str, autotune: bool, gpu_accel: bool = False
+    ctx: Context,
+    prefix: str,
+    backend: str,
+    autotune: bool = False,
+    gpu_accel: bool = False,
 ) -> None:
     """
     Continuously write data to csv.
@@ -22,7 +28,7 @@ async def write_to_csv(
     elif gpu_accel:
         filename += f"-{gpu}"
 
-    with open(f"{data_dir}/{filename}", "w", buffering=1) as f:
+    with open(f"{data_dir}/{filename}.csv", "w", buffering=1) as f:
         w = csv.writer(f)
         w.writerow(
             [

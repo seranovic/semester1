@@ -1,7 +1,7 @@
 import asyncio
 
-from data_structures import Context
-from ENG110_python import get_eng110_data
+from .data_structures import Context
+from .ENG110_python import get_eng110_data
 
 
 async def measure_gpu(ctx: Context) -> None:

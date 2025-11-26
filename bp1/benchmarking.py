@@ -2,7 +2,7 @@ import time
 
 from lammps import lammps
 
-from data_structures import Context
+from .data_structures import Context
 
 
 def setup_lennard_jones_system(lmp: lammps, nx: int, ny: int, nz: int) -> None:

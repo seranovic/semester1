@@ -1,15 +1,14 @@
 import asyncio
 from dataclasses import dataclass, field
-from typing import Optional
 
 
 @dataclass
 class PowerData:
-    gpu: Optional[float] = None
-    total: Optional[float] = None
+    gpu: float | str = ""
+    total: float | str = ""
     is_running: bool = False
-    n_atoms: Optional[int] = None
-    tps: Optional[int] = None
+    n_atoms: int | str = ""
+    tps: float | str = ""
 
 
 @dataclass

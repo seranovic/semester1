@@ -11,6 +11,7 @@ Command line options:
 
 """
 
+import asyncio
 import glob
 import sys
 
@@ -25,6 +26,8 @@ from numba import cuda, config
 import gamdpy as gp
 import pickle
 import time
+
+from .data_structures import Context
 
 
 def setup_lennard_jones_system(nx, ny, nz, rho=0.8442, cut=2.5, verbose=False):
@@ -120,65 +123,69 @@ def run_benchmark(
     return tps, time_in_sec, steps, sim.compute_plan.copy()
 
 
-def main(integrator, nblist, identifier, autotune, debug):
+async def run_batch(
+    ctx: Context,
+    nxyzs: list[tuple[int, int, int]],
+    debug: bool = False,
+    autotune: bool = False,
+) -> None:
+    """
+    Run batch of benchmarks and save data to shared to state.
+    """
+
     config.CUDA_LOW_OCCUPANCY_WARNINGS = False
-    print(f"Benchmarking LJ with {integrator} integrator:")
+
+    integrator = "NVE"
+    nblist = "default"
+
     if debug:
-        nxyzs = ((4, 4, 8), (4, 8, 8))
         sleep_time = 5
+        target_time_in_sec = 5.0
     else:
-        nxyzs = np.genfromtxt("nxyzs.txt", dtype=int, delimiter=",", autostrip=True)
         sleep_time = 15
-    # nxyzs = (
-    #     (8, 8, 8),
-    #     (8, 8, 16),
-    #     (8, 16, 16),
-    #     (16, 16, 16),
-    #     (16, 16, 32),
-    #     (16, 32, 32),
-    #     (32, 32, 32),
-    # )
-    # if nblist == "Nsquared":
-    #     nxyzs = (
-    #         (4, 4, 8),
-    #         (4, 8, 8),
-    #     ) + nxyzs
-    # if nblist == "LinkedLists":
-    #     nxyzs += (32, 32, 64), (32, 64, 64), (64, 64, 64)
-    # if nblist == "default":
-    #     nxyzs = (
-    #         (4, 4, 8),
-    #         (4, 8, 8),
-    #     ) + nxyzs
-    #     nxyzs += (32, 32, 64), (32, 64, 64), (64, 64, 64)
-    # nxyzs = ( (4, 4, 8), (4, 8, 8) ) # For quick debuging
-    # nxyzs = ( (32, 32, 32), ) # For quick debuging
-    Ns = []
-    tpss = []
-    tpss_at = []
+        target_time_in_sec = 10.0
+
+    await asyncio.sleep(sleep_time)
+
+    magic_number = 1e7
+
     compute_plans = []
     compute_plans_at = []
-    target_time_in_sec = 5.0  # At least this time to get reliable timing
-    magic_number = 1e7
-    print("    N     TPS     Steps   Time     NbUpd Steps/NbUpd")
+
+    d = ctx.power_data
+
     for nxyz in nxyzs:
-        c1, LJ_func = setup_lennard_jones_system(*nxyz, cut=2.5, verbose=False)
+        c1, LJ_func = await asyncio.to_thread(
+            setup_lennard_jones_system, *nxyz, cut=2.5, verbose=False
+        )
+
+        async with ctx.lock:
+            d.is_running = True
+            d.n_atoms = c1.N
+
         time_in_sec = 0
         while time_in_sec < target_time_in_sec:
             steps = int(magic_number / c1.N)
             compute_plan = gp.get_default_compute_plan(c1)
-            tps, time_in_sec, steps, compute_plan = run_benchmark(
-                c1, LJ_func, compute_plan, steps, integrator=integrator, verbose=False
+            tps, time_in_sec, steps, compute_plan = await asyncio.to_thread(
+                run_benchmark,
+                c1,
+                LJ_func,
+                compute_plan,
+                steps,
+                integrator=integrator,
+                verbose=False,
             )
-            magic_number *= (
-                2 * target_time_in_sec
-            ) / time_in_sec  # Aim for 2*target_time (Assuming O(N) scaling)
-        Ns.append(c1.N)
-        tpss.append(tps)
+            magic_number *= (2 * target_time_in_sec) / time_in_sec
         compute_plans.append(compute_plan)
 
+        async with ctx.lock:
+            d.is_running = False
+            d.tps = steps / time_in_sec
+
         if autotune:
-            tps_at, time_in_sec_at, steps_at, compute_plan_at = run_benchmark(
+            tps_at, time_in_sec_at, steps_at, compute_plan_at = await asyncio.to_thread(
+                run_benchmark,
                 c1,
                 LJ_func,
                 compute_plan,
@@ -187,59 +194,12 @@ def main(integrator, nblist, identifier, autotune, debug):
                 autotune=autotune,
                 verbose=False,
             )
-            tpss_at.append(tps_at)
             compute_plans_at.append(compute_plan_at)
-        print(f"Waiting {sleep_time} seconds")
-        time.sleep(sleep_time)
 
-    # Save this run to csv file
-    # if autotune:
-    #     df = pd.DataFrame({"N": Ns, "TPS": tpss, "TPS_AT": tpss_at})
-    #     data = {
-    #         "N": Ns,
-    #         "TPS": tpss,
-    #         "TPS_AT": tpss_at,
-    #         "compute_plans": compute_plans,
-    #         "compute_plans_at": compute_plans_at,
-    #     }
-    # else:
-    #     df = pd.DataFrame(
-    #         {"N": Ns, "TPS": tpss},
-    #     )
-    #     data = {
-    #         "N": Ns,
-    #         "TPS": tpss,
-    #         "compute_plans": compute_plans,
-    #     }
-    #
-    # df.to_csv(f"Data/benchmark_LJ_{identifier}.csv", index=False)
-    # with open(f"Data/benchmark_LJ_{identifier}.pkl", "wb") as file:
-    #     pickle.dump(data, file)
+        await asyncio.sleep(sleep_time)
+
+    ctx.stop_event.set()
 
 
 if __name__ == "__main__":
-    integrator = "NVE"
-
-    identifier = "default"
-
-    if "NVT" in sys.argv:
-        integrator = "NVT"
-    if "NVT_Langevin" in sys.argv:
-        integrator = "NVT_Langevin"
-
-    nblist = "default"
-    if "LinkedLists" in sys.argv:
-        nblist = "LinkedLists"
-    if "NSquared" in sys.argv:
-        nblist = "NSquared"
-
-    debug = "debug" in sys.argv
-    autotune = "autotune" in sys.argv
-
-    main(
-        integrator=integrator,
-        nblist=nblist,
-        identifier=identifier,
-        autotune=autotune,
-        debug=debug,
-    )
+    pass

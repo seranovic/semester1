@@ -16,6 +16,8 @@ async def write_to_csv(
     Continuously write data to csv.
     """
 
+    await asyncio.sleep(0.5)
+
     d = ctx.power_data
 
     data_dir = "data"
@@ -24,9 +26,9 @@ async def write_to_csv(
 
     filename = f"{prefix}-{backend}"
     if autotune:
-        filename += f"-{at}"
+        filename += "-at"
     elif gpu_accel:
-        filename += f"-{gpu}"
+        filename += "-gpu"
 
     with open(f"{data_dir}/{filename}.csv", "w", buffering=1) as f:
         w = csv.writer(f)
@@ -46,8 +48,8 @@ async def write_to_csv(
             w.writerow(
                 [
                     i,
-                    f"{d.gpu:.2f}",
-                    f"{d.total:.2f}",
+                    d.gpu,
+                    d.total,
                     d.is_running,
                     d.n_atoms,
                     d.tps,

@@ -1,3 +1,4 @@
+import asyncio
 import time
 
 from lammps import lammps
@@ -45,47 +46,33 @@ def run_benchmark(lmp: lammps, steps: int) -> int:
     return elapsed
 
 
-async def run_batch(ctx: Context, debug: bool = False) -> None:
+async def run_batch(
+    ctx: Context,
+    nxyzs: list[tuple[int, int, int]],
+    debug: bool = False,
+    gpu_accel: bool = False,
+) -> None:
     """
     Run batch of benchmarks and save data to shared to state.
     """
 
     if debug:
-        nxyzs = (
-            (4, 4, 8),
-            (4, 8, 8),
-        )
         sleep_time = 5
         target_time_in_sec = 5.0
     else:
-        nxyzs = (
-            (4, 4, 8),
-            (4, 8, 8),
-            (8, 8, 8),
-            (8, 8, 16),
-            (8, 16, 16),
-            (16, 16, 16),
-            (16, 16, 32),
-            (16, 32, 32),
-            (32, 32, 32),
-            (32, 32, 64),
-            (32, 64, 64),
-            (64, 64, 64),
-            (64, 64, 128),
-            (64, 128, 128),
-            (128, 128, 128),
-        )
         sleep_time = 15
         target_time_in_sec = 10.0
+
+    await asyncio.sleep(sleep_time)
 
     magic_number = 1e7
 
     d = ctx.power_data
 
     for nxyz in nxyzs:
-        lmp = lammps(cmdargs=["-screen", "none", "-log", "none"])
-        setup_lennard_jones_system(lmp, *nxyz)
-        n_atoms = lmp.get_natoms()
+        lmp = lammps(cmdargs=["-log", "none"])
+        await asyncio.to_thread(setup_lennard_jones_system, lmp, *nxyz)
+        n_atoms = await asyncio.to_thread(lmp.get_natoms)
 
         async with ctx.lock:
             d.is_running = True
@@ -94,11 +81,12 @@ async def run_batch(ctx: Context, debug: bool = False) -> None:
         time_in_sec = 0
         while time_in_sec < target_time_in_sec:
             steps = int(magic_number / n_atoms)
-            time_in_sec = run_benchmark(lmp, steps)
+            time_in_sec = await asyncio.to_thread(run_benchmark, lmp, steps)
             magic_number *= (2 * target_time_in_sec) / time_in_sec
-        lmp.close()
+        await asyncio.to_thread(lmp.close)
 
         async with ctx.lock:
+            d.is_running = False
             d.tps = steps / time_in_sec
 
         await asyncio.sleep(sleep_time)

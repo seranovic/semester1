@@ -2,7 +2,7 @@ import argparse
 import asyncio
 import sys
 
-from bp1 import benchmarking
+from bp1 import benchmark_gamdpy, benchmark_lammps
 from bp1.data_structures import Context
 from bp1.measuring import measure_gpu, measure_total
 from bp1.writing import write_to_csv
@@ -18,12 +18,6 @@ def parse_args() -> argparse.Namespace:
         nargs="?",
         help="identifying prefix for this run (can overwrite data if not unique)",
     )
-    # p.add_argument(
-    #     "-v",
-    #     "--verbose",
-    #     action="store_true",
-    #     help="increase output verbosity",
-    # )
     p.add_argument(
         "-d",
         "--debug",
@@ -37,13 +31,13 @@ def parse_args() -> argparse.Namespace:
     )
 
     # gamdpy parser
-    # p_gamdpy = sub_ps.add_parser("gamdpy")
-    # p_gamdpy.add_argument(
-    #     "-a",
-    #     "--autotune",
-    #     action="store_true",
-    #     help="enable autotuning",
-    # )
+    p_gamdpy = sub_ps.add_parser("gamdpy")
+    p_gamdpy.add_argument(
+        "-a",
+        "--autotune",
+        action="store_true",
+        help="enable autotuning",
+    )
 
     # lammps parser
     p_lammps = sub_ps.add_parser("lammps")
@@ -57,12 +51,11 @@ def parse_args() -> argparse.Namespace:
     args = p.parse_args()
 
     if not args.prefix and not args.debug:
-        print("Error: specify identifier or debug mode")
+        print("Error: specify prefix")
         sys.exit(1)
 
     if args.debug:
         args.prefix = "debug"
-        # args.verbose = True
 
     return args
 
@@ -70,20 +63,59 @@ def parse_args() -> argparse.Namespace:
 async def main(args: argparse.Namespace) -> None:
     ctx = Context()
 
-    tasks = [
-        asyncio.create_task(benchmarking.run_batch(ctx, debug=args.debug)),
-        asyncio.create_task(measure_gpu(ctx)),
-        asyncio.create_task(measure_total(ctx)),
-        asyncio.create_task(
+    autotune = False
+    gpu_accel = False
+
+    if hasattr(args, "autotune"):
+        autotune = args.autotune
+
+    if hasattr(args, "gpu"):
+        gpu_accel = args.gpu
+
+    nxyzs = [(4, 4, 8), (4, 8, 8)]
+    if not args.debug:
+        nxyzs.extend(
+            [
+                (8, 8, 8),
+                (8, 8, 16),
+                (8, 16, 16),
+                (16, 16, 16),
+                (16, 16, 32),
+                (16, 32, 32),
+                (32, 32, 32),
+                (32, 32, 64),
+                (32, 64, 64),
+                (64, 64, 64),
+                (64, 64, 128),
+                (64, 128, 128),
+                (128, 128, 128),
+            ]
+        )
+
+    async with asyncio.TaskGroup() as tg:
+        if args.backend == "lammps":
+            tg.create_task(
+                benchmark_lammps.run_batch(
+                    ctx, nxyzs=nxyzs, debug=args.debug, gpu_accel=gpu_accel
+                )
+            )
+        else:
+            tg.create_task(
+                benchmark_gamdpy.run_batch(
+                    ctx, nxyzs=nxyzs, debug=args.debug, autotune=autotune
+                )
+            )
+        tg.create_task(measure_gpu(ctx)),
+        tg.create_task(measure_total(ctx)),
+        tg.create_task(
             write_to_csv(
                 ctx,
                 prefix=args.prefix,
                 backend=args.backend,
+                autotune=autotune,
+                gpu_accel=gpu_accel,
             )
         ),
-    ]
-
-    await asyncio.gather(*tasks)
 
 
 if __name__ == "__main__":

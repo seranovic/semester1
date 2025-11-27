@@ -30,7 +30,7 @@ async def measure_total(ctx: Context) -> None:
     """
 
     while not ctx.stop_event.is_set():
-        measurement = float(f"{get_eng110_data()[2]:.2f}")
+        measurement = get_eng110_data()[2]
 
         async with ctx.lock:
             ctx.power_data.total = measurement

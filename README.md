@@ -29,36 +29,35 @@ and run ```ssh <target-hostname>```.
 
 ## Collecting Data
 
-Set up preferred system sizes in ```nxyzs.txt```.
+Set up preferred system sizes in ```main.py```.
 
 While on bead67, run ```main.py``` to start the benchmark and save the measurements to csv:
 
 ```sh
-# Example: run gamdpy with autotuner and save data with the prefix "default"
-python3 main.py -i default gamdpy -a
+# Example: run gamdpy with autotuning and save data with the prefix "default"
+python3 main.py -p default gamdpy -a
 ```
 
 You can use the following arguments:
 
 ```
-usage: main.py [-h] [-i [identifier]] [-v] [-d] {gamdpy,lammps} ...
+usage: main.py [-h] [-p [PREFIX]] [-d] {gamdpy,lammps} ...
 
 positional arguments:
   {gamdpy,lammps}       backend
 
 options:
   -h, --help            show this help message and exit
-  -i, --id [identifier]
-                        identifier for this run (will overwrite data if not unique)
-  -v, --verbose         increase output verbosity
+  -p, --prefix [PREFIX]
+                        identifying prefix for this run (can overwrite data if not unique)
   -d, --debug           run benchmark with small system sizes (~30-60 seconds per run)
 
 # for gamdpy
 usage: main.py gamdpy [-h] [-a]
 
 options:
-  -h, --help       show this help message and exit
-  -a, --autotuner  use autotuner
+  -h, --help      show this help message and exit
+  -a, --autotune  enable autotuning
 
 # for lammps
 usage: main.py lammps [-h]

@@ -1,169 +1,22 @@
 import argparse
 import asyncio
-import os
-import subprocess
 import sys
-import time
-from io import TextIOWrapper
 
-from ENG110_python import get_eng110_data
-
-
-async def measure_total() -> str:
-    """
-    Get power draw measurement from ENG110 power meter.
-    """
-
-    measurement = "{:.2f}".format(get_eng110_data()[2])
-
-    return measurement
+from bp1 import benchmark_gamdpy, benchmark_lammps
+from bp1.data_structures import Context
+from bp1.measuring import measure_gpu, measure_total
+from bp1.writing import write_to_csv
 
 
-async def measure_gpu() -> str:
-    """
-    Get power draw measurement from nvidia-smi.
-    """
-
-    proc = await asyncio.create_subprocess_shell(
-        "nvidia-smi -i 0 --query-gpu=power.draw --format=csv,nounits,noheader",
-        stdout=asyncio.subprocess.PIPE,
-    )
-    stdout, _ = await proc.communicate()
-    measurement = stdout.decode().replace("\n", "")
-
-    return measurement
-
-
-async def write_to_file(stop_event: asyncio.Event, out: TextIOWrapper) -> None:
-    """
-    Write power draw measurements to file once per second.
-
-    Format: time,gpu,total
-        time:   timestamp in seconds
-        gpu:    gpu power draw in watts
-        total:  total power draw in watts
-    """
-
-    out.write("time,gpu,total\n")
-    i = 0  # tick counter
-    dt = 1  # tick rate in seconds
-    t_start = time.time()
-
-    while not stop_event.is_set():
-        t_sched = t_start + i * dt  # scheduled measurement
-
-        gpu, total = await asyncio.gather(measure_gpu(), measure_total())
-        out.write(f"{int(t_sched-t_start)},{gpu},{total}\n")
-
-        # Pause sampling for dt seconds
-        t_current = time.time()
-        t_next = t_sched + dt  # next measurement
-        t_sleep = t_next - t_current
-        if t_sleep > 0 and not stop_event.is_set():
-            await asyncio.sleep(t_sleep)
-
-        i += 1
-
-
-async def run_bench(backend: str, autotuner: bool, debug: bool, verbose: bool) -> None:
-    """
-    Run benchmarking script.
-    """
-
-    command = ["python3", f"benchmark_{backend}.py"]
-
-    sleep_time = 15
-    stdout = asyncio.subprocess.PIPE
-    stderr = asyncio.subprocess.PIPE
-
-    if debug:
-        command.append("debug")
-        sleep_time = 5
-
-    if verbose:
-        stdout = None
-        stderr = None
-
-    if autotuner:
-        command.append("autotune")
-
-    if verbose:
-        print(f"Waiting {sleep_time} seconds")
-    await asyncio.sleep(sleep_time)  # for measuring pre-benchmark idle power draw
-
-    proc = await asyncio.create_subprocess_exec(*command, stdout=stdout, stderr=stdout)
-    await proc.communicate()
-
-
-async def main(args) -> None:
-    identifier = args.id
-    backend = ""
-    debug = False
-    verbose = False
-    autotuner = False
-
-    if args.backend == "gamdpy":
-        backend = "gamdpy"
-        if args.autotuner:
-            autotuner = True
-    else:
-        backend = "lammps"
-
-    if args.debug:
-        debug = True
-
-    if args.verbose:
-        verbose = True
-
-    data_dir = "data"
-    if not os.path.exists(data_dir):
-        os.makedirs(data_dir)
-
-    filename = f"{identifier}-{backend}"
-    if autotuner:
-        filename += "-at"
-
-    # Stream to file
-    with open(f"{data_dir}/{filename}.csv", "w", buffering=1) as f:
-
-        # Stop event for measuring tasks
-        stop_event = asyncio.Event()
-
-        # Start writing measurements to disk
-        task_measure = asyncio.create_task(write_to_file(stop_event, f))
-
-        # Start benchmark
-        proc_bench = asyncio.create_task(
-            run_bench(
-                backend=backend,
-                autotuner=autotuner,
-                debug=debug,
-                verbose=verbose,
-            )
-        )
-
-        # Stop measurement tasks when benchmark has concluded
-        await proc_bench
-        stop_event.set()
-        await task_measure
-
-
-if __name__ == "__main__":
+def parse_args() -> argparse.Namespace:
     # Top level parser
     p = argparse.ArgumentParser()
     p.add_argument(
-        "-i",
-        "--id",
+        "-p",
+        "--prefix",
         type=str,
         nargs="?",
-        metavar="identifier",
-        help="identifier for this run (will overwrite data if not unique)",
-    )
-    p.add_argument(
-        "-v",
-        "--verbose",
-        action="store_true",
-        help="increase output verbosity",
+        help="identifying prefix for this run (can overwrite data if not unique)",
     )
     p.add_argument(
         "-d",
@@ -181,23 +34,90 @@ if __name__ == "__main__":
     p_gamdpy = sub_ps.add_parser("gamdpy")
     p_gamdpy.add_argument(
         "-a",
-        "--autotuner",
+        "--autotune",
         action="store_true",
-        help="use autotuner",
+        help="enable autotuning",
     )
 
     # lammps parser
     p_lammps = sub_ps.add_parser("lammps")
-    # TODO: add gpu-accel flag
+    # p_gamdpy.add_argument(
+    #     "-g",
+    #     "--gpu",
+    #     action="store_true",
+    #     help="enable GPU-acceleration",
+    # )
 
     args = p.parse_args()
 
-    if not args.id and not args.debug:
-        print("Error: specify identifier or debug mode")
+    if not args.prefix and not args.debug:
+        print("Error: specify prefix")
         sys.exit(1)
 
     if args.debug:
-        args.id = "debug"
-        args.verbose = True
+        args.prefix = "debug"
 
+    return args
+
+
+async def main(args: argparse.Namespace) -> None:
+    ctx = Context()
+
+    autotune = False
+    gpu_accel = False
+
+    if hasattr(args, "autotune"):
+        autotune = args.autotune
+
+    if hasattr(args, "gpu"):
+        gpu_accel = args.gpu
+
+    nxyzs = [(4, 4, 8), (4, 8, 8)]
+    if not args.debug:
+        nxyzs.extend(
+            [
+                (8, 8, 8),
+                (8, 8, 16),
+                (8, 16, 16),
+                (16, 16, 16),
+                (16, 16, 32),
+                (16, 32, 32),
+                (32, 32, 32),
+                (32, 32, 64),
+                (32, 64, 64),
+                (64, 64, 64),
+                (64, 64, 128),
+                (64, 128, 128),
+                (128, 128, 128),
+            ]
+        )
+
+    async with asyncio.TaskGroup() as tg:
+        if args.backend == "lammps":
+            tg.create_task(
+                benchmark_lammps.run_batch(
+                    ctx, nxyzs=nxyzs, debug=args.debug, gpu_accel=gpu_accel
+                )
+            )
+        else:
+            tg.create_task(
+                benchmark_gamdpy.run_batch(
+                    ctx, nxyzs=nxyzs, debug=args.debug, autotune=autotune
+                )
+            )
+        tg.create_task(measure_gpu(ctx)),
+        tg.create_task(measure_total(ctx)),
+        tg.create_task(
+            write_to_csv(
+                ctx,
+                prefix=args.prefix,
+                backend=args.backend,
+                autotune=autotune,
+                gpu_accel=gpu_accel,
+            )
+        ),
+
+
+if __name__ == "__main__":
+    args = parse_args()
     asyncio.run(main(args))

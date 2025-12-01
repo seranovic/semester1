@@ -88,7 +88,7 @@ async def main(args: argparse.Namespace) -> None:
                 (64, 64, 64),
                 (64, 64, 128),
                 (64, 128, 128),
-                (128, 128, 128),
+                # (128, 128, 128),  # out of memory error when run with autotuning
             ]
         )
 

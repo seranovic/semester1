@@ -166,7 +166,7 @@ async def run_batch(
         time_in_sec = 0
         while time_in_sec < target_time_in_sec:
             steps = int(magic_number / c1.N)
-            compute_plan = gp.get_default_compute_plan(c1)
+            compute_plan = await asyncio.to_thread(gp.get_default_compute_plan, c1)
             tps, time_in_sec, steps, compute_plan = await asyncio.to_thread(
                 run_benchmark,
                 c1,

@@ -2,6 +2,8 @@ import argparse
 import asyncio
 import sys
 
+import pandas as pd
+
 from bp1 import benchmark_gamdpy, benchmark_lammps, ComputePlan, Context
 from bp1.measuring import measure_gpu, measure_total
 from bp1.writing import write_to_csv
@@ -71,158 +73,41 @@ async def main(args: argparse.Namespace) -> None:
     if hasattr(args, "gpu"):
         gpu_accel = args.gpu
 
+    compute_plans: list[ComputePlan] = pd.read_csv(
+        "at_compute_plans.csv",
+        dtype={
+            "n": int,
+            "pb": int,
+            "tp": int,
+            "skin": float,
+            "UtilizeNIII": bool,
+            "gridsync": bool,
+            "nblist": str,
+        },
+        index_col="n",
+    ).to_dict(orient="records")
+
     systems: list[dict[tuple[int, int, int], ComputePlan]] = [
-        {
-            "nxyz": (4, 4, 8),
-            "compute_plan": {
-                "pb": 8,
-                "tp": 24,
-                "skin": 0.3,
-                "UtilizeNIII": False,
-                "gridsync": True,
-                "nblist": "N squared",
-            },
-        },
-        {
-            "nxyz": (4, 8, 8),
-            "compute_plan": {
-                "pb": 16,
-                "tp": 28,
-                "skin": 0.5,
-                "UtilizeNIII": False,
-                "gridsync": True,
-                "nblist": "N squared",
-            },
-        },
+        {"nxyz": (4, 4, 8), "compute_plan": compute_plans[0]},
+        {"nxyz": (4, 8, 8), "compute_plan": compute_plans[1]},
     ]
-    # TODO: Insert autotuned compute plans
-    # if not args.debug:
-    #     systems.extend(
-    #         [
-    #             {
-    #                 "nxyz": (8, 8, 8),
-    #                 "compute_plan": {
-    #                     "pb": 16,
-    #                     "tp": 28,
-    #                     "skin": 0.5,
-    #                     "UtilizeNIII": False,
-    #                     "gridsync": True,
-    #                     "nblist": "N squared",
-    #                 },
-    #             },
-    #             {
-    #                 "nxyz": (8, 8, 16),
-    #                 "compute_plan": {
-    #                     "pb": 16,
-    #                     "tp": 28,
-    #                     "skin": 0.5,
-    #                     "UtilizeNIII": False,
-    #                     "gridsync": True,
-    #                     "nblist": "N squared",
-    #                 },
-    #             },
-    #             {
-    #                 "nxyz": (8, 16, 16),
-    #                 "compute_plan": {
-    #                     "pb": 16,
-    #                     "tp": 28,
-    #                     "skin": 0.5,
-    #                     "UtilizeNIII": False,
-    #                     "gridsync": True,
-    #                     "nblist": "N squared",
-    #                 },
-    #             },
-    #             {
-    #                 "nxyz": (16, 16, 16),
-    #                 "compute_plan": {
-    #                     "pb": 16,
-    #                     "tp": 28,
-    #                     "skin": 0.5,
-    #                     "UtilizeNIII": False,
-    #                     "gridsync": True,
-    #                     "nblist": "N squared",
-    #                 },
-    #             },
-    #             {
-    #                 "nxyz": (16, 16, 32),
-    #                 "compute_plan": {
-    #                     "pb": 16,
-    #                     "tp": 28,
-    #                     "skin": 0.5,
-    #                     "UtilizeNIII": False,
-    #                     "gridsync": True,
-    #                     "nblist": "N squared",
-    #                 },
-    #             },
-    #             {
-    #                 "nxyz": (16, 32, 32),
-    #                 "compute_plan": {
-    #                     "pb": 16,
-    #                     "tp": 28,
-    #                     "skin": 0.5,
-    #                     "UtilizeNIII": False,
-    #                     "gridsync": True,
-    #                     "nblist": "N squared",
-    #                 },
-    #             },
-    #             {
-    #                 "nxyz": (32, 32, 32),
-    #                 "compute_plan": {
-    #                     "pb": 16,
-    #                     "tp": 28,
-    #                     "skin": 0.5,
-    #                     "UtilizeNIII": False,
-    #                     "gridsync": True,
-    #                     "nblist": "N squared",
-    #                 },
-    #             },
-    #             {
-    #                 "nxyz": (32, 32, 64),
-    #                 "compute_plan": {
-    #                     "pb": 16,
-    #                     "tp": 28,
-    #                     "skin": 0.5,
-    #                     "UtilizeNIII": False,
-    #                     "gridsync": True,
-    #                     "nblist": "N squared",
-    #                 },
-    #             },
-    #             {
-    #                 "nxyz": (32, 64, 64),
-    #                 "compute_plan": {
-    #                     "pb": 16,
-    #                     "tp": 28,
-    #                     "skin": 0.5,
-    #                     "UtilizeNIII": False,
-    #                     "gridsync": True,
-    #                     "nblist": "N squared",
-    #                 },
-    #             },
-    #             {
-    #                 "nxyz": (64, 64, 64),
-    #                 "compute_plan": {
-    #                     "pb": 16,
-    #                     "tp": 28,
-    #                     "skin": 0.5,
-    #                     "UtilizeNIII": False,
-    #                     "gridsync": True,
-    #                     "nblist": "N squared",
-    #                 },
-    #             },
-    #             {
-    #                 "nxyz": (64, 64, 128),
-    #                 "compute_plan": {
-    #                     "pb": 16,
-    #                     "tp": 28,
-    #                     "skin": 0.5,
-    #                     "UtilizeNIII": False,
-    #                     "gridsync": True,
-    #                     "nblist": "N squared",
-    #                 },
-    #             },
-    #             # out of memory error when run with higher system sizes
-    #         ]
-    #     )
+    if not args.debug:
+        systems.extend(
+            [
+                {"nxyz": (8, 8, 8), "compute_plan": compute_plans[2]},
+                {"nxyz": (8, 8, 16), "compute_plan": compute_plans[3]},
+                {"nxyz": (8, 16, 16), "compute_plan": compute_plans[4]},
+                {"nxyz": (16, 16, 16), "compute_plan": compute_plans[5]},
+                {"nxyz": (16, 16, 32), "compute_plan": compute_plans[6]},
+                {"nxyz": (16, 32, 32), "compute_plan": compute_plans[7]},
+                {"nxyz": (32, 32, 32), "compute_plan": compute_plans[8]},
+                {"nxyz": (32, 32, 64), "compute_plan": compute_plans[9]},
+                {"nxyz": (32, 64, 64), "compute_plan": compute_plans[10]},
+                {"nxyz": (64, 64, 64), "compute_plan": compute_plans[11]},
+                {"nxyz": (64, 64, 128), "compute_plan": compute_plans[12]},
+                # out of memory error when run with higher system sizes
+            ]
+        )
 
     async with asyncio.TaskGroup() as tg:
         if args.backend == "lammps":

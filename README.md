@@ -34,7 +34,7 @@ Set up preferred system sizes in ```main.py```.
 While on bead67, run ```main.py``` to start the benchmark and save the measurements to csv:
 
 ```sh
-# Example: run gamdpy with autotuning and save data with the prefix "default"
+# Example: run gamdpy with autotuned compute plans and save data with the prefix "default"
 python3 main.py -p default gamdpy -a
 ```
 
@@ -57,7 +57,7 @@ usage: main.py gamdpy [-h] [-a]
 
 options:
   -h, --help      show this help message and exit
-  -a, --autotune  enable autotuning
+  -a, --autotune  use autotuned compute plans
 
 # for lammps
 usage: main.py lammps [-h]

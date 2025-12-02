@@ -3,7 +3,7 @@ import time
 
 from lammps import lammps
 
-from .data_structures import Context
+from .data_structures import ComputePlan, Context
 
 
 def setup_lennard_jones_system(lmp: lammps, nx: int, ny: int, nz: int) -> None:
@@ -48,7 +48,7 @@ def run_benchmark(lmp: lammps, steps: int) -> int:
 
 async def run_batch(
     ctx: Context,
-    nxyzs: list[tuple[int, int, int]],
+    systems: list[dict[tuple[int, int, int], ComputePlan]],
     debug: bool = False,
     gpu_accel: bool = False,
 ) -> None:
@@ -69,9 +69,9 @@ async def run_batch(
 
     d = ctx.power_data
 
-    for nxyz in nxyzs:
+    for system in systems:
         lmp = lammps(cmdargs=["-log", "none"])
-        await asyncio.to_thread(setup_lennard_jones_system, lmp, *nxyz)
+        await asyncio.to_thread(setup_lennard_jones_system, lmp, *system["nxyz"])
         n_atoms = await asyncio.to_thread(lmp.get_natoms)
 
         async with ctx.lock:

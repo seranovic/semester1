@@ -27,7 +27,7 @@ import gamdpy as gp
 import pickle
 import time
 
-from .data_structures import Context
+from .data_structures import ComputePlan, Context
 
 
 def setup_lennard_jones_system(nx, ny, nz, rho=0.8442, cut=2.5, verbose=False):
@@ -125,7 +125,7 @@ def run_benchmark(
 
 async def run_batch(
     ctx: Context,
-    nxyzs: list[tuple[int, int, int]],
+    systems: list[dict[tuple[int, int, int], ComputePlan]],
     debug: bool = False,
     autotune: bool = False,
 ) -> None:
@@ -149,14 +149,11 @@ async def run_batch(
 
     magic_number = 1e7
 
-    compute_plans = []
-    compute_plans_at = []
-
     d = ctx.power_data
 
-    for nxyz in nxyzs:
+    for system in systems:
         c1, LJ_func = await asyncio.to_thread(
-            setup_lennard_jones_system, *nxyz, cut=2.5, verbose=False
+            setup_lennard_jones_system, *system["nxyz"], cut=2.5, verbose=False
         )
 
         async with ctx.lock:
@@ -166,8 +163,11 @@ async def run_batch(
         time_in_sec = 0
         while time_in_sec < target_time_in_sec:
             steps = int(magic_number / c1.N)
-            compute_plan = await asyncio.to_thread(gp.get_default_compute_plan, c1)
-            tps, time_in_sec, steps, compute_plan = await asyncio.to_thread(
+            if autotune:
+                compute_plan = system["compute_plan"]
+            else:
+                compute_plan = await asyncio.to_thread(gp.get_default_compute_plan, c1)
+            tps, time_in_sec, steps, _ = await asyncio.to_thread(
                 run_benchmark,
                 c1,
                 LJ_func,
@@ -177,24 +177,10 @@ async def run_batch(
                 verbose=False,
             )
             magic_number *= (2 * target_time_in_sec) / time_in_sec
-        compute_plans.append(compute_plan)
 
         async with ctx.lock:
             d.is_running = False
-            d.tps = steps / time_in_sec
-
-        if autotune:
-            tps_at, time_in_sec_at, steps_at, compute_plan_at = await asyncio.to_thread(
-                run_benchmark,
-                c1,
-                LJ_func,
-                compute_plan,
-                steps,
-                integrator=integrator,
-                autotune=autotune,
-                verbose=False,
-            )
-            compute_plans_at.append(compute_plan_at)
+            d.tps = tps
 
         await asyncio.sleep(sleep_time)
 

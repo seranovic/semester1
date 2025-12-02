@@ -1,6 +1,8 @@
 import asyncio
 from dataclasses import dataclass, field
 
+type ComputePlan = dict[int, int, float, bool, bool, str]
+
 
 @dataclass
 class PowerData:

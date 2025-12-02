@@ -1,50 +1,27 @@
-"""
-Benchmark gamdpy using the lammps LJ benchmark
-Command line options:
-
-- Nsquared : Use O(N^2) for neighbor-list update (Default)
-- LinkedLists : Use O(N) linked lists for neighbor-list update
-
-- NVE : Use NVE integrator (default)
-- NVT : Use NVT integrator
-- NVT_Langevin : Use NVT_Langevin integrator
-
-"""
-
 import asyncio
-import glob
-import sys
-
-# from gamdpy.integrators import nve, nvt_nh, nvt_langevin  # OLD CODE
-
-import matplotlib.pyplot as plt
-import numpy as np
-import pandas as pd
-import numba
-from numba import cuda, config
 
 import gamdpy as gp
-import pickle
-import time
+import numba
+import numpy as np
+from numba import cuda, config
 
 from .data_structures import ComputePlan, Context
 
 
-def setup_lennard_jones_system(nx, ny, nz, rho=0.8442, cut=2.5, verbose=False):
+def setup_lennard_jones_system(
+    nx: int, ny: int, nz: int
+) -> tuple[gp.Configuration, gp.PairPotential]:
     """
-    Setup and return configuration, potential function, and potential parameters for the LJ benchmark
+    Setup and return configuration and potential function for the LJ benchmark.
     """
 
     # Generate configuration with a FCC lattice
-    # Setup configuration: FCC Lattice
     c1 = gp.Configuration(D=3)
-    c1.make_lattice(gp.unit_cells.FCC, cells=[nx, ny, nz], rho=rho)
+    c1.make_lattice(gp.unit_cells.FCC, cells=[nx, ny, nz], rho=0.8442)
     c1["m"] = 1.0
     c1.randomize_velocities(temperature=1.44)
-    #  c1 = gp.make_configuration_fcc(nx=nx,  ny=ny,  nz=nz,  rho=rho, T=1.44)
 
-    # Setup pair potential.
-    # pair_func = gp.apply_shifted_force_cutoff(rp.LJ_12_6_sigma_epsilon)
+    # Setup pair potential
     pair_func = gp.apply_shifted_potential_cutoff(gp.LJ_12_6_sigma_epsilon)
     sig, eps, cut = 1.0, 1.0, 2.5
     pair_pot = gp.PairPotential(pair_func, params=[sig, eps, cut], max_num_nbs=500)
@@ -53,24 +30,17 @@ def setup_lennard_jones_system(nx, ny, nz, rho=0.8442, cut=2.5, verbose=False):
 
 
 def run_benchmark(
-    c1, pair_pot, compute_plan, steps, integrator="NVE", autotune=False, verbose=False
-):
+    c1: gp.Configuration,
+    pair_pot: gp.PairPotential,
+    compute_plan: ComputePlan,
+    steps: int,
+) -> tuple[float, float, int]:
     """
-    Run LJ benchmark
-    Could be run with other potential and/or parameters, but asserts would need to be updated
+    Run LJ benchmark and return elapsed time and timesteps.
     """
 
     # Set up the integrator
-    dt = 0.005
-
-    if integrator == "NVE":
-        integrator = gp.integrators.NVE(dt=dt)
-    if integrator == "NVT":
-        integrator = gp.integrators.NVT(temperature=0.70, tau=0.2, dt=dt)
-    if integrator == "NVT_Langevin":
-        integrator = gp.integrators.NVT_Langevin(
-            temperature=0.70, alpha=0.2, dt=dt, seed=213
-        )
+    integrator = gp.integrators.NVE(dt=0.005)
 
     # Setup Simulation. Total number of timesteps: num_blocks * steps_per_block
     sim = gp.Simulation(
@@ -90,20 +60,9 @@ def run_benchmark(
     for block in sim.run_timeblocks():
         pass
 
-    if autotune:
-        # sim.autotune_bruteforce(verbose=False)
-        sim.autotune()
-
     nbflag0 = pair_pot.nblist.d_nbflag.copy_to_host()
     for block in sim.run_timeblocks():
         pass
-
-    # print(sim.summary())
-
-    # assert 0.55 < Tkin < 0.85, f'{Tkin=}'
-    # assert 0.55 < Tconf < 0.85, f'{Tconf=}'
-    # if integrator == 'NVE':  # Only expect conservation of energy if we are running NVE
-    #    assert -0.01 < de < 0.01
 
     tps = (
         sim.last_num_blocks
@@ -120,7 +79,7 @@ def run_benchmark(
     )
     assert nbflag[0] == 0
     assert nbflag[1] == 0
-    return tps, time_in_sec, steps, sim.compute_plan.copy()
+    return tps, time_in_sec, steps
 
 
 async def run_batch(
@@ -130,7 +89,7 @@ async def run_batch(
     autotune: bool = False,
 ) -> None:
     """
-    Run batch of benchmarks and save data to shared to state.
+    Run batch of benchmarks and save data to shared state.
     """
 
     config.CUDA_LOW_OCCUPANCY_WARNINGS = False
@@ -153,7 +112,7 @@ async def run_batch(
 
     for system in systems:
         c1, LJ_func = await asyncio.to_thread(
-            setup_lennard_jones_system, *system["nxyz"], cut=2.5, verbose=False
+            setup_lennard_jones_system, *system["nxyz"]
         )
 
         async with ctx.lock:
@@ -167,14 +126,8 @@ async def run_batch(
                 compute_plan = system["compute_plan"]
             else:
                 compute_plan = await asyncio.to_thread(gp.get_default_compute_plan, c1)
-            tps, time_in_sec, steps, _ = await asyncio.to_thread(
-                run_benchmark,
-                c1,
-                LJ_func,
-                compute_plan,
-                steps,
-                integrator=integrator,
-                verbose=False,
+            tps, time_in_sec, steps = await asyncio.to_thread(
+                run_benchmark, c1, LJ_func, compute_plan, steps
             )
             magic_number *= (2 * target_time_in_sec) / time_in_sec
 

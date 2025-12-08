@@ -1,8 +1,6 @@
 import asyncio
 import time
 
-from lammps import lammps
-
 from .data_structures import ComputePlan, Context
 
 

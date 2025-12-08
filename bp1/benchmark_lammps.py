@@ -6,9 +6,9 @@ from lammps import lammps
 from .data_structures import ComputePlan, Context
 
 
-def setup_lennard_jones_system(lmp: lammps, nx: int, ny: int, nz: int) -> None:
+async def setup_lennard_jones_system(nx: int, ny: int, nz: int) -> tuple[str, int]:
     """
-    Set configuration commands for LJ benchmark.
+    Return configuration commands for LJ benchmark and number of atoms.
     """
 
     config = f"""
@@ -31,16 +31,26 @@ def setup_lennard_jones_system(lmp: lammps, nx: int, ny: int, nz: int) -> None:
 
     fix             1 all nve
     """
-    lmp.commands_string(config)
+    n_atoms = 4 * nx * ny * nz
+
+    return config, n_atoms
 
 
-def run_benchmark(lmp: lammps, steps: int) -> int:
+async def run_benchmark(config: str, steps: int) -> int:
     """
     Run benchmark and return elapsed time.
     """
 
+    config += f"run {steps}"
+
     start = time.time()
-    lmp.cmd.run(steps)
+    proc = await asyncio.create_subprocess_exec(
+        "lmp",
+        "-log",
+        "none",
+        stdin=asyncio.subprocess.PIPE,
+    )
+    _, _ = await proc.communicate(config.encode())
     elapsed = time.time() - start
 
     return elapsed
@@ -70,9 +80,7 @@ async def run_batch(
     d = ctx.power_data
 
     for system in systems:
-        lmp = lammps(cmdargs=["-log", "none"])
-        await asyncio.to_thread(setup_lennard_jones_system, lmp, *system["nxyz"])
-        n_atoms = await asyncio.to_thread(lmp.get_natoms)
+        config, n_atoms = await setup_lennard_jones_system(*system["nxyz"])
 
         async with ctx.lock:
             d.is_running = True
@@ -81,9 +89,8 @@ async def run_batch(
         time_in_sec = 0
         while time_in_sec < target_time_in_sec:
             steps = int(magic_number / n_atoms)
-            time_in_sec = await asyncio.to_thread(run_benchmark, lmp, steps)
+            time_in_sec = await run_benchmark(config, steps)
             magic_number *= (2 * target_time_in_sec) / time_in_sec
-        await asyncio.to_thread(lmp.close)
 
         async with ctx.lock:
             d.is_running = False

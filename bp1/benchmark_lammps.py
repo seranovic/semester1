@@ -4,7 +4,9 @@ import time
 from .data_structures import ComputePlan, Context
 
 
-async def setup_lennard_jones_system(nx: int, ny: int, nz: int) -> tuple[str, int]:
+async def setup_lennard_jones_system(
+    gpu_accel: bool, nx: int, ny: int, nz: int
+) -> tuple[str, int]:
     """
     Return configuration commands for LJ benchmark and number of atoms.
     """
@@ -21,7 +23,7 @@ async def setup_lennard_jones_system(nx: int, ny: int, nz: int) -> tuple[str, in
 
     velocity        all create 1.44 87287 loop geom
 
-    pair_style      lj/cut 2.5
+    pair_style      lj/cut{"/gpu" if gpu_accel else ""} 2.5
     pair_coeff      1 1 1.0 1.0 2.5
 
     neighbor        0.3 bin
@@ -34,23 +36,28 @@ async def setup_lennard_jones_system(nx: int, ny: int, nz: int) -> tuple[str, in
     return config, n_atoms
 
 
-async def run_benchmark(config: str, steps: int, n_procs: int = 12) -> int:
+async def run_benchmark(
+    config: str, steps: int, gpu_accel: bool, n_procs: int = 12
+) -> int:
     """
     Run benchmark and return elapsed time.
     """
 
-    config += f"run {steps}"
-
-    start = time.time()
-    proc = await asyncio.create_subprocess_exec(
+    cmd = [
         "mpirun",
         "-np",
         str(n_procs),
         "lmp",
         "-log",
         "none",
-        stdin=asyncio.subprocess.PIPE,
-    )
+    ]
+    if gpu_accel:
+        cmd.extend(["-pk", "gpu", "1"])
+
+    config += f"run {steps}"
+
+    start = time.time()
+    proc = await asyncio.create_subprocess_exec(*cmd, stdin=asyncio.subprocess.PIPE)
     _, _ = await proc.communicate(config.encode())
     elapsed = time.time() - start
 
@@ -81,7 +88,7 @@ async def run_batch(
     d = ctx.power_data
 
     for system in systems:
-        config, n_atoms = await setup_lennard_jones_system(*system["nxyz"])
+        config, n_atoms = await setup_lennard_jones_system(gpu_accel, *system["nxyz"])
 
         async with ctx.lock:
             d.is_running = True
@@ -90,7 +97,7 @@ async def run_batch(
         time_in_sec = 0
         while time_in_sec < target_time_in_sec:
             steps = int(magic_number / n_atoms)
-            time_in_sec = await run_benchmark(config, steps)
+            time_in_sec = await run_benchmark(config, steps, gpu_accel)
             magic_number *= (2 * target_time_in_sec) / time_in_sec
 
         async with ctx.lock:

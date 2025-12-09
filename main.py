@@ -42,12 +42,12 @@ def parse_args() -> argparse.Namespace:
 
     # lammps parser
     p_lammps = sub_ps.add_parser("lammps")
-    # p_gamdpy.add_argument(
-    #     "-g",
-    #     "--gpu",
-    #     action="store_true",
-    #     help="enable GPU-acceleration",
-    # )
+    p_lammps.add_argument(
+        "-g",
+        "--gpu",
+        action="store_true",
+        help="enable GPU-acceleration",
+    )
 
     args = p.parse_args()
 

@@ -2,7 +2,8 @@
 
 prefix="pow9pow21"
 batches=3
-backends=("gamdpy" "gamdpy -a" "lammps")
+backends=("gamdpy" "gamdpy -a" "lammps" "lammps -g") # one or more of:
+                                                     # gamdpy, gamdpy -a, lammps, lammps -g
 
 for b in "${backends[@]}"; do
     for i in {1..$batches}; do

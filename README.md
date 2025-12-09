@@ -60,10 +60,11 @@ options:
   -a, --autotune  use autotuned compute plans
 
 # for lammps
-usage: main.py lammps [-h]
+usage: main.py lammps [-h] [-g]
 
 options:
   -h, --help  show this help message and exit
+  -g, --gpu   enable GPU-acceleration
 ```
 
 Data is written to disk after each measurement, so you can check the progress with ```tail -f data/<filename>.csv```.

@@ -34,7 +34,7 @@ async def setup_lennard_jones_system(nx: int, ny: int, nz: int) -> tuple[str, in
     return config, n_atoms
 
 
-async def run_benchmark(config: str, steps: int) -> int:
+async def run_benchmark(config: str, steps: int, n_procs: int = 12) -> int:
     """
     Run benchmark and return elapsed time.
     """
@@ -43,6 +43,9 @@ async def run_benchmark(config: str, steps: int) -> int:
 
     start = time.time()
     proc = await asyncio.create_subprocess_exec(
+        "mpirun",
+        "-np",
+        str(n_procs),
         "lmp",
         "-log",
         "none",
@@ -61,7 +64,7 @@ async def run_batch(
     gpu_accel: bool = False,
 ) -> None:
     """
-    Run batch of benchmarks and save data to shared to state.
+    Run batch of benchmarks and save data to shared state.
     """
 
     if debug:

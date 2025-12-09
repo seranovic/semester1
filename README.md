@@ -67,6 +67,8 @@ options:
   -g, --gpu   enable GPU-acceleration
 ```
 
+Alternatively, edit and run `./batch_run.sh` for multiple runs back-to-back.
+
 Data is written to disk after each measurement, so you can check the progress with ```tail -f data/<filename>.csv```.
 
 ## Send/Retrieve Data

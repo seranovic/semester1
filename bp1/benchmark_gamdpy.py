@@ -84,7 +84,7 @@ def run_benchmark(
 
 async def run_batch(
     ctx: Context,
-    systems: list[dict[tuple[int, int, int], ComputePlan]],
+    systems: list[dict[tuple[int, int, int], ComputePlan, int]],
     debug: bool = False,
     autotune: bool = False,
 ) -> None:

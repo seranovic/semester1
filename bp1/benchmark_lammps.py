@@ -36,21 +36,20 @@ async def setup_lennard_jones_system(
     return config, n_atoms
 
 
-async def run_benchmark(
-    config: str, steps: int, gpu_accel: bool, n_procs: int = 12
-) -> int:
+async def run_benchmark(config: str, steps: int, gpu_accel: bool, mpi_np: int) -> int:
     """
     Run benchmark and return elapsed time.
     """
 
-    cmd = [
-        "mpirun",
-        "-np",
-        str(n_procs),
-        "lmp",
-        "-log",
-        "none",
-    ]
+    lmp_bin = "./bin/lmp"
+    cmd = []
+
+    n_procs = mpi_np if gpu_accel else 12
+    if not n_procs == 1:
+        cmd.extend(["mpirun", "-np", str(n_procs)])
+
+    cmd.extend([lmp_bin, "-log", "none", "-nocite"])
+
     if gpu_accel:
         cmd.extend(["-pk", "gpu", "1"])
 
@@ -66,7 +65,7 @@ async def run_benchmark(
 
 async def run_batch(
     ctx: Context,
-    systems: list[dict[tuple[int, int, int], ComputePlan]],
+    systems: list[dict[tuple[int, int, int], ComputePlan, int]],
     debug: bool = False,
     gpu_accel: bool = False,
 ) -> None:
@@ -97,7 +96,9 @@ async def run_batch(
         time_in_sec = 0
         while time_in_sec < target_time_in_sec:
             steps = int(magic_number / n_atoms)
-            time_in_sec = await run_benchmark(config, steps, gpu_accel)
+            time_in_sec = await run_benchmark(
+                config, steps, gpu_accel, system["mpi_np"]
+            )
             magic_number *= (2 * target_time_in_sec) / time_in_sec
 
         async with ctx.lock:

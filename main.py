@@ -87,24 +87,24 @@ async def main(args: argparse.Namespace) -> None:
         index_col="n",
     ).to_dict(orient="records")
 
-    systems: list[dict[tuple[int, int, int], ComputePlan]] = [
-        {"nxyz": (4, 4, 8), "compute_plan": compute_plans[0]},
-        {"nxyz": (4, 8, 8), "compute_plan": compute_plans[1]},
+    systems: list[dict[tuple[int, int, int], ComputePlan, int]] = [
+        {"nxyz": (4, 4, 8), "compute_plan": compute_plans[0], "mpi_np": 1},
+        {"nxyz": (4, 8, 8), "compute_plan": compute_plans[1], "mpi_np": 1},
     ]
     if not args.debug:
         systems.extend(
             [
-                {"nxyz": (8, 8, 8), "compute_plan": compute_plans[2]},
-                {"nxyz": (8, 8, 16), "compute_plan": compute_plans[3]},
-                {"nxyz": (8, 16, 16), "compute_plan": compute_plans[4]},
-                {"nxyz": (16, 16, 16), "compute_plan": compute_plans[5]},
-                {"nxyz": (16, 16, 32), "compute_plan": compute_plans[6]},
-                {"nxyz": (16, 32, 32), "compute_plan": compute_plans[7]},
-                {"nxyz": (32, 32, 32), "compute_plan": compute_plans[8]},
-                {"nxyz": (32, 32, 64), "compute_plan": compute_plans[9]},
-                {"nxyz": (32, 64, 64), "compute_plan": compute_plans[10]},
-                {"nxyz": (64, 64, 64), "compute_plan": compute_plans[11]},
-                {"nxyz": (64, 64, 128), "compute_plan": compute_plans[12]},
+                {"nxyz": (8, 8, 8), "compute_plan": compute_plans[2], "mpi_np": 1},
+                {"nxyz": (8, 8, 16), "compute_plan": compute_plans[3], "mpi_np": 1},
+                {"nxyz": (8, 16, 16), "compute_plan": compute_plans[4], "mpi_np": 1},
+                {"nxyz": (16, 16, 16), "compute_plan": compute_plans[5], "mpi_np": 1},
+                {"nxyz": (16, 16, 32), "compute_plan": compute_plans[6], "mpi_np": 2},
+                {"nxyz": (16, 32, 32), "compute_plan": compute_plans[7], "mpi_np": 3},
+                {"nxyz": (32, 32, 32), "compute_plan": compute_plans[8], "mpi_np": 5},
+                {"nxyz": (32, 32, 64), "compute_plan": compute_plans[9], "mpi_np": 5},
+                {"nxyz": (32, 64, 64), "compute_plan": compute_plans[10], "mpi_np": 10},
+                {"nxyz": (64, 64, 64), "compute_plan": compute_plans[11], "mpi_np": 9},
+                {"nxyz": (64, 64, 128), "compute_plan": compute_plans[12], "mpi_np": 9},
                 # out of memory error when run with higher system sizes
             ]
         )
